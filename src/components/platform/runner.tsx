@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, ArrowRight, Check, ChevronLeft, Headphones, PartyPopper, Volume2, X } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, ChevronLeft, Headphones, Timer, Volume2, X } from "lucide-react";
 import { BigButton, Card, C, Chip, Mascot, SKILL_COLORS, Spinner, api } from "./kit";
 import { SKILL_META, Skill } from "@/lib/questions/types";
 
@@ -29,13 +29,14 @@ interface Props {
   onExit: () => void;
 }
 
-const SECTION_ORDER: Skill[] = ["reading", "listening", "writing", "speaking"];
+// The digital exam walks the three system-assessed pillars; speaking is assessed live by a teacher.
+const SECTION_ORDER: Skill[] = ["reading", "listening", "writing"];
 
 const SECTION_INTROS: Record<Skill, string> = {
   reading: "Read each text with care - the answers live on the page.",
   listening: "Listen first, answer second. You can play each voice twice.",
   writing: "Choose the sentences that are built the right way.",
-  speaking: "Pick the reply that would sound best in a real conversation.",
+  speaking: "Your speaking pillar is assessed live by your teacher.",
 };
 
 export default function Runner({ mode, onFinish, onExit }: Props) {
@@ -44,26 +45,34 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
   const [question, setQuestion] = useState<RunnerQuestion | null>(null);
   const [skill, setSkill] = useState<Skill>("reading");
   const [sectionIndex, setSectionIndex] = useState(0);
-  const [sectionCount, setSectionCount] = useState(mode === "FULL" ? 4 : 1);
+  const [sectionCount, setSectionCount] = useState(mode === "FULL" ? 3 : 1);
   const [answered, setAnswered] = useState(0);
+  const [targetQuestions, setTargetQuestions] = useState(mode === "FULL" ? 28 : 10);
   const [lastOutcome, setLastOutcome] = useState<null | { correct: boolean; xp: number }>(null);
   const [sectionDone, setSectionDone] = useState<Skill | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  // answer state
-  const [selected, setSelected] = useState<string>("");
-  const [multi, setMulti] = useState<string[]>([]);
-  const [text, setText] = useState("");
-  const [ordered, setOrdered] = useState<string[]>([]);
+  const [startedAt, setStartedAt] = useState<number>(Date.now());
+  const [targetMinutes, setTargetMinutes] = useState(mode === "FULL" ? 22 : 9);
+  const [capMinutes, setCapMinutes] = useState(mode === "FULL" ? 35 : 15);
+  const [now, setNow] = useState(Date.now());
+  const finishingRef = useRef(false);
 
   const start = useCallback(async () => {
     setLoading(true);
     setError("");
-    const res = await api<{ attemptId: string; question: RunnerQuestion | null; skill: Skill; sectionIndex: number; sectionCount: number; answered: number }>(
-      "/api/assessment/start",
-      { mode }
-    );
+    const res = await api<{
+      attemptId: string;
+      question: RunnerQuestion | null;
+      skill: Skill;
+      sectionIndex: number;
+      sectionCount: number;
+      answered: number;
+      startedAt: string;
+      targetMinutes: number;
+      capMinutes: number;
+      targetQuestions: number;
+    }>("/api/assessment/start", { mode });
     if (!res.ok || !res.data) {
       setError(res.error || "Could not start the assessment");
       setLoading(false);
@@ -75,15 +84,46 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
     setSectionIndex(res.data.sectionIndex);
     setSectionCount(res.data.sectionCount);
     setAnswered(res.data.answered || 0);
+    setTargetQuestions(res.data.targetQuestions || (mode === "FULL" ? 28 : 10));
+    setStartedAt(new Date(res.data.startedAt).getTime());
+    setTargetMinutes(res.data.targetMinutes || (mode === "FULL" ? 22 : 9));
+    setCapMinutes(res.data.capMinutes || (mode === "FULL" ? 35 : 15));
     setSectionDone(null);
     setLastOutcome(null);
     setLoading(false);
   }, [mode]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- async session load on mount
     start();
   }, [start]);
+
+  // Gentle timer - the exam targets about 20 minutes for the full walk and wraps up at the cap.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const elapsedMin = (now - startedAt) / 60000;
+  const timePct = Math.min(100, (elapsedMin / capMinutes) * 100);
+  const timeColor = timePct >= 85 ? C.coral : timePct >= 65 ? "#E8A200" : C.teal;
+
+  const finishOnce = useCallback(async () => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    const fin = await api("/api/assessment/finish", { attemptId });
+    if (fin.ok) onFinish(attemptId);
+    else {
+      setError(fin.error || "Could not compute your results");
+      finishingRef.current = false;
+    }
+  }, [attemptId, onFinish]);
+
+  // Auto-finish exactly at the cap with the evidence collected so far.
+  useEffect(() => {
+    if (!loading && !sectionDone && question && elapsedMin >= capMinutes) {
+      void finishOnce();
+    }
+  }, [elapsedMin, capMinutes, loading, sectionDone, question, finishOnce]);
 
   const resetAnswerState = () => {
     setSelected("");
@@ -121,6 +161,7 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
       nextQuestion: RunnerQuestion | null;
       sectionDone: Skill | null;
       finished: boolean;
+      autoFinished?: boolean;
       skill: Skill;
       sectionIndex: number;
       answered: number;
@@ -133,15 +174,7 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
     setLastOutcome({ correct: res.data.correct, xp: res.data.awardedXp });
     setAnswered(res.data.answered);
     if (res.data.finished) {
-      // go to finish
-      const fin = await api("/api/assessment/finish", { attemptId });
-      if (fin.ok) onFinish(attemptId);
-      else setError(fin.error || "Could not compute your results");
-      return;
-    }
-    if (res.data.sectionDone) {
-      setSectionDone(res.data.sectionDone);
-      setQuestion(null);
+      await finishOnce();
       return;
     }
     // small delay so the player sees the correct/wrong pulse
@@ -158,15 +191,16 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
     resetAnswerState();
     setSectionDone(null);
     setLastOutcome(null);
-    // fetch next question by answering trick: the engine holds the next question already
-    // -> we call start-like endpoint? No: after sectionDone the next question was already
-    // prepared in engine state. We get it via answer of an empty ping? Cleaner: dedicated call.
-    // We re-fetch the current question through /api/assessment/start (resume path).
+    // The engine already prepared the next station - resume it.
     setLoading(true);
-    api<{ attemptId: string; question: RunnerQuestion | null; skill: Skill; sectionIndex: number; sectionCount: number; answered: number }>(
-      "/api/assessment/start",
-      { mode }
-    ).then((res) => {
+    api<{
+      attemptId: string;
+      question: RunnerQuestion | null;
+      skill: Skill;
+      sectionIndex: number;
+      sectionCount: number;
+      answered: number;
+    }>("/api/assessment/start", { mode }).then((res) => {
       setLoading(false);
       if (res.ok && res.data) {
         setQuestion(res.data.question);
@@ -217,6 +251,11 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
           <p className="mt-2 font-bold" style={{ color: C.soft }}>
             {nextSkill ? `Next station: ${SKILL_META[nextSkill].label}. Keep your energy up!` : "Wrapping up your ladder report..."}
           </p>
+          {mode === "FULL" && !nextSkill && (
+            <p className="mt-2 text-sm font-bold" style={{ color: C.soft }}>
+              Your speaking pillar comes next - your teacher will run your live interview.
+            </p>
+          )}
           <div className="mt-6 flex justify-center">
             <BigButton onClick={continueSection} color={C.coral}>
               {nextSkill ? "Continue" : "See my results"} <ArrowRight size={20} />
@@ -231,8 +270,9 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
 
   const q = question;
   const color = SKILL_COLORS[q.skill];
-  const totalInSection = mode === "FULL" ? 4 : 1;
-  const progressPct = Math.min(100, Math.round((answered / (mode === "FULL" ? 40 : 12)) * 100));
+  const progressPct = Math.min(95, Math.round((answered / targetQuestions) * 100));
+  const mm = Math.floor(elapsedMin);
+  const ss = Math.floor((elapsedMin * 60) % 60);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
@@ -241,7 +281,14 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
         <button onClick={onExit} className="flex items-center gap-1 text-sm font-bold" style={{ color: C.soft }}>
           <ChevronLeft size={18} /> Save and exit
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold"
+            style={{ background: `${timeColor}14`, color: timeColor }}
+            title={`Target ${targetMinutes} minutes - the exam wraps up by itself at ${capMinutes}`}
+          >
+            <Timer size={14} /> {mm}:{String(ss).padStart(2, "0")} / {targetMinutes}:00
+          </div>
           {mode === "FULL" &&
             SECTION_ORDER.map((s, i) => (
               <div
@@ -260,7 +307,7 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
 
       <div className="mb-2 flex items-center justify-between text-sm font-bold" style={{ color: C.soft }}>
         <span>
-          Station {sectionIndex + 1}/{totalInSection}: {SKILL_META[q.skill].label}
+          Station {sectionIndex + 1}/{sectionCount}: {SKILL_META[q.skill].label} - {SECTION_INTROS[q.skill]}
         </span>
         <span>{answered} answered</span>
       </div>
@@ -410,7 +457,7 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
       </Card>
 
       <p className="mt-3 text-center text-xs font-bold" style={{ color: C.soft }}>
-        The ladder adapts as you go - answer well and it climbs, stumble and it supports you.
+        The ladder moves both ways - answer well and it climbs, stumble and it comes down to support you, then confirms your level.
       </p>
     </div>
   );
@@ -498,5 +545,3 @@ function ListeningPlayer({ q, color }: { q: RunnerQuestion; color: string }) {
     </div>
   );
 }
-
-void PartyPopper;

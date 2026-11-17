@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { BigButton, Bar, Card, C, Chip, Confetti, FrameworkChips, Ladder, Mascot, Ring, SkillChip, Spinner, api } from "./kit";
 import { SKILL_META, Skill } from "@/lib/questions/types";
+import { cefrOfLevel } from "@/lib/interviewKits";
 
 interface FeedbackItem {
   id: string;
@@ -33,8 +34,9 @@ interface DetailData {
   };
   student: { id: string; name: string };
   result: {
-    skills: { skill: Skill; correct: number; asked: number; accuracy: number; placement: number; continuous: number; levelsChart: { level: number; asked: number; correct: number; pct: number }[]; strongTopic?: string; weakTopic?: string }[];
+    skills: { skill: Skill; correct: number; asked: number; accuracy: number; placement: number; continuous: number; confidence?: string; levelsChart: { level: number; asked: number; correct: number; pct: number }[]; strongTopic?: string; weakTopic?: string; source?: string; criteria?: Record<string, number>; assessedBy?: string; assessedAt?: string }[];
     overallLevel: number; overallRounded: number; fluencyPct: number;
+    provisional?: boolean;
     band: { code: string; label: string; message: string };
     startRef: string; startUnit: { level: number; unit: number; unitTitle: string; lesson: number; lessonTitle: string } | null;
     badges: string[];
@@ -132,8 +134,12 @@ export default function ResultsView({ attemptId, onGoHome, onRetake }: { attempt
             <h1 className="mt-1 text-4xl font-black leading-tight" style={{ fontFamily: "var(--font-baloo), 'Baloo 2', sans-serif", color: C.ink }}>
               {isFull ? `Level ${r?.overallLevel} on the Fluency Ladder` : `${SKILL_META[data.result?.skills[0].skill || "reading"].label} check`}
             </h1>
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-white font-extrabold" style={{ background: bandColor }}>
-              <Trophy size={18} /> {r?.band.label}: {accuracyPct}%
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+              <span className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-white font-extrabold" style={{ background: bandColor }}>
+                <Trophy size={18} /> {r?.band.label}: {accuracyPct}%
+              </span>
+              {isFull && <Chip color={C.violet}>CEFR {cefrOfLevel(r?.overallLevel || 0)}</Chip>}
+              {r?.provisional && <Chip color="#E8A200" soft="#FFF3D6">Provisional - speaking interview pending</Chip>}
             </div>
             <p className="mt-3 font-semibold leading-relaxed" style={{ color: C.soft }}>
               {r?.band.message} <b style={{ color: bandColor }}>{BAND_TIPS[r?.band.code || "GOOD"]}</b>
@@ -166,29 +172,69 @@ export default function ResultsView({ attemptId, onGoHome, onRetake }: { attempt
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {(r?.skills || []).map((s) => {
               const m = SKILL_META[s.skill];
+              const isTeacher = s.source === "teacher";
+              const hasTeacherScore = isTeacher && s.continuous > 0;
+              const isPending = isTeacher && !hasTeacherScore;
+              const CRIT_LABELS: Record<string, string> = {
+                fluency: "Fluency", pronunciation: "Pronunciation", vocabulary: "Vocabulary",
+                grammarAccuracy: "Grammar", comprehension: "Comprehension", conversation: "Conversation",
+              };
               return (
                 <div key={s.skill} className="rounded-2xl p-4" style={{ background: m.soft, border: `1px solid ${C.line}` }}>
                   <div className="flex items-center justify-between">
                     <SkillChip skill={s.skill} />
                     <span className="text-sm font-black" style={{ color: m.color }}>
-                      Level {s.continuous}
+                      {isPending ? "live" : `Level ${s.continuous}`}
                     </span>
                   </div>
-                  <div className="mt-2"><Bar pct={Math.round(s.accuracy * 100)} color={m.color} /></div>
-                  <div className="mt-2 text-xs font-bold" style={{ color: C.soft }}>
-                    {Math.round(s.accuracy * 100)}% accuracy - placed at Level {s.placement} ({s.correct}/{s.asked} questions correct)
-                  </div>
-                  <div className="mt-1 text-xs font-bold" style={{ color: C.ink }}>
-                    {s.weakTopic ? <span>Revise first: {s.weakTopic}</span> : <span>Strong across everything asked - brilliant!</span>}
-                  </div>
-                  <div className="mt-2 flex gap-1">
-                    {s.levelsChart.map((lc) => (
-                      <div key={lc.level} className="flex-1 text-center">
-                        <div className="rounded-t-md" style={{ height: 6 + lc.pct * 0.32, background: m.color, opacity: 0.85 }} title={`Level ${lc.level}: ${lc.pct}%`} />
-                        <div className="text-[10px] font-extrabold" style={{ color: C.soft }}>L{lc.level}</div>
+                  {!isPending ? (
+                    <>
+                      <div className="mt-2"><Bar pct={Math.round(s.accuracy * 100)} color={m.color} /></div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold" style={{ color: C.soft }}>
+                        {isTeacher ? (
+                          <>
+                            <span>Live interview - assessed by {s.assessedBy}</span>
+                            <Chip color={m.color}>CEFR {cefrOfLevel(s.continuous)}</Chip>
+                          </>
+                        ) : (
+                          <>
+                            <span>{Math.round(s.accuracy * 100)}% accuracy - placed at Level {s.placement} ({s.correct}/{s.asked} questions correct)</span>
+                            {s.confidence && <Chip color={s.confidence === "high" ? C.teal : s.confidence === "medium" ? "#E8A200" : C.coral}>{s.confidence} confidence</Chip>}
+                          </>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                      {isTeacher && s.criteria && (
+                        <div className="mt-2 grid gap-1">
+                          {Object.entries(s.criteria).map(([k, v]) => (
+                            <div key={k} className="flex items-center gap-2">
+                              <span className="w-24 text-[10px] font-extrabold" style={{ color: C.soft }}>{CRIT_LABELS[k] || k}</span>
+                              <div className="flex-1"><Bar pct={(v / 4) * 100} color={m.color} height={6} /></div>
+                              <span className="text-[10px] font-black" style={{ color: m.color }}>{v}/4</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {!isTeacher && (
+                        <div className="mt-1 text-xs font-bold" style={{ color: C.ink }}>
+                          {s.weakTopic ? <span>Revise first: {s.weakTopic}</span> : <span>Strong across everything asked - brilliant!</span>}
+                        </div>
+                      )}
+                      {!isTeacher && s.levelsChart.length > 0 && (
+                        <div className="mt-2 flex gap-1">
+                          {s.levelsChart.map((lc) => (
+                            <div key={lc.level} className="flex-1 text-center">
+                              <div className="rounded-t-md" style={{ height: 6 + lc.pct * 0.32, background: m.color, opacity: 0.85 }} title={`Level ${lc.level}: ${lc.pct}%`} />
+                              <div className="text-[10px] font-extrabold" style={{ color: C.soft }}>L{lc.level}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="mt-2 text-xs font-bold" style={{ color: C.ink }}>
+                      Your speaking pillar comes from a live interview with your teacher-examiner (fluency, pronunciation, vocabulary, grammar, comprehension, conversation). Once it is done, your overall level and fluency percent finalize here automatically.
+                    </div>
+                  )}
                 </div>
               );
             })}

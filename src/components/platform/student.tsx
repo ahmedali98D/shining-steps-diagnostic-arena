@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Flame, History, LogOut, Play, RefreshCcw, Rocket, Star, Trophy } from "lucide-react";
+import { Flame, History, LogOut, Mic, Play, RefreshCcw, Rocket, Star, Trophy } from "lucide-react";
 import { BigButton, Bar, Card, C, Chip, Ladder, Mascot, Ring, SectionTitle, SkillChip, Spinner, api } from "./kit";
 import { SKILLS, SKILL_META, Skill } from "@/lib/questions/types";
 import { BADGES, RANKS, badgeDef, rankFor } from "@/lib/gamification";
+
+const SYSTEM_SKILLS: Skill[] = ["reading", "listening", "writing"];
 
 interface AttemptSummary {
   id: string;
@@ -19,7 +21,8 @@ interface AttemptSummary {
   accuracyPct: number;
   finishedAt: string | null;
   progressPct: number | null;
-  skills?: { skill: Skill; continuous: number; accuracy: number }[];
+  skills?: { skill: Skill; continuous: number; accuracy: number; source?: string; assessedBy?: string }[];
+  provisional?: boolean;
 }
 
 interface Me {
@@ -112,7 +115,7 @@ export default function StudentHome({
                 </BigButton>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {SKILLS.map((s) => (
+                {SYSTEM_SKILLS.map((s) => (
                   <button
                     key={s}
                     onClick={() => onStart(s)}
@@ -122,6 +125,13 @@ export default function StudentHome({
                     <Play size={13} className="mr-1 inline" /> Quick {SKILL_META[s].label} check
                   </button>
                 ))}
+                <span
+                  className="rounded-xl border-2 border-dashed px-3 py-2 text-sm font-extrabold"
+                  style={{ borderColor: SKILL_META.speaking.color, color: SKILL_META.speaking.color }}
+                  title="Speaking is assessed live by your teacher-examiner"
+                >
+                  <Mic size={13} className="mr-1 inline" /> Speaking: live interview with your teacher
+                </span>
               </div>
             </Card>
           </div>
@@ -133,18 +143,36 @@ export default function StudentHome({
               {SKILLS.map((s) => {
                 const m = SKILL_META[s];
                 const sk = skillOf(s);
+                const isTeacherAssessed = sk?.source === "teacher" && sk.continuous > 0;
+                const isPending = s === "speaking" && !isTeacherAssessed;
                 return (
                   <div key={s} className="rounded-2xl p-4" style={{ background: m.soft, border: `1px solid ${C.line}` }}>
                     <div className="flex items-center justify-between">
                       <SkillChip skill={s} />
-                      <span className="text-sm font-black" style={{ color: m.color }}>{sk ? `L${sk.continuous}` : "-"}</span>
+                      <span className="text-sm font-black" style={{ color: m.color }}>
+                        {isTeacherAssessed ? `L${sk!.continuous}` : sk ? `L${sk.continuous}` : s === "speaking" ? "live" : "-"}
+                      </span>
                     </div>
-                    <div className="mt-2"><Bar pct={sk ? Math.round(sk.accuracy * 100) : 0} color={m.color} /></div>
-                    <div className="mt-1 text-[11px] font-bold" style={{ color: C.soft }}>{m.blurb}</div>
+                    <div className="mt-2">
+                      <Bar pct={sk && !(s === "speaking" && !isTeacherAssessed) ? Math.round(sk.accuracy * 100) : 0} color={m.color} />
+                    </div>
+                    <div className="mt-1 text-[11px] font-bold" style={{ color: C.soft }}>
+                      {isPending ? "Book your live interview - your teacher scores fluency, pronunciation, vocabulary, grammar, comprehension and conversation" : m.blurb}
+                    </div>
+                    {isTeacherAssessed && sk?.assessedBy && (
+                      <div className="mt-1 text-[10px] font-extrabold" style={{ color: m.color }}>
+                        Live interview by {sk.assessedBy}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
+            {lastFull && lastFull.provisional && (
+              <div className="mt-4 rounded-2xl px-4 py-3 text-sm font-bold" style={{ background: "#FFF3D6", color: "#B25E02" }}>
+                Your placement is provisional: three pillars are measured digitally. After your live speaking interview, your overall level and fluency percent finalize automatically.
+              </div>
+            )}
           </Card>
 
           {/* badges */}

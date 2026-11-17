@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { ok, fail, handleError } from "@/lib/api";
-import { initEngineState, publicQuestion, Mode } from "@/lib/diagnostic";
+import { initEngineState, publicQuestion, Mode, TARGET_MINUTES, CAP_MINUTES, TARGET_QUESTIONS } from "@/lib/diagnostic";
 import { SKILLS } from "@/lib/questions";
 
 interface WrappedState {
@@ -35,6 +35,10 @@ export async function POST(req: NextRequest) {
         sectionIndex: wrapped.engine.activeIdx,
         sectionCount: wrapped.engine.order.length,
         answered: wrapped.log.length,
+        startedAt: existing.startedAt,
+        targetMinutes: TARGET_MINUTES[mode],
+        capMinutes: CAP_MINUTES[mode],
+        targetQuestions: TARGET_QUESTIONS[mode],
       });
     }
 
@@ -72,6 +76,10 @@ export async function POST(req: NextRequest) {
       sectionIndex: engine.activeIdx,
       sectionCount: engine.order.length,
       answered: 0,
+      startedAt: attempt.startedAt,
+      targetMinutes: TARGET_MINUTES[mode],
+      capMinutes: CAP_MINUTES[mode],
+      targetQuestions: TARGET_QUESTIONS[mode],
     });
   } catch (err) {
     return handleError(err);

@@ -1,11 +1,18 @@
 // Adaptive diagnostic engine for the Shining Steps Fluency Ladder (L0-L8).
-// Walks each skill through the ladder, branching up or down by performance,
-// then produces placement, per-skill analysis, advice band and a start point.
+//
+// Methodology (CEFR-informed adaptive placement):
+// - Starts near the student's initial proficiency level (previous placement or mid-ladder).
+// - Walks in blocks: pass a block, climb; fail a block, drop; borderline, extend and re-decide.
+// - Moves BOTH ways - never a one-way staircase. A failed level leads downward with a
+//   confirmation block at the more appropriate level (standard adaptive placement practice).
+// - A level is visited at most twice (initial block + confirmation block) to keep the exam short.
+// - Stops on: placement confidence (level seen twice), question budget, or ladder boundary.
+// - The system assesses Reading, Listening and Writing digitally; Speaking is assessed live
+//   by a teacher-examiner (see src/lib/interviewKits.ts) and merged into the final placement.
 
 import {
   Question,
   Skill,
-  SKILLS,
   gradablePoolFor,
   getQuestion,
   LEVEL_META,
@@ -25,24 +32,24 @@ export interface LevelTally {
 export interface SkillSectionState {
   skill: Skill;
   currentLevel: number;
-  visitedLevels: number[];
+  visits: Record<number, number>; // blocks started per level (1 = initial, 2 = confirmation)
   askedIds: string[];
   askedAtLevel: number; // questions asked at the current level in this visit
   tallies: Record<number, LevelTally>;
-  lastResults: boolean[]; // results of the last block at this level
+  lastResults: boolean[]; // results of the current block
   done: boolean;
 }
 
 export interface EngineState {
   mode: Mode;
   sections: Record<Skill, SkillSectionState>;
-  order: Skill[]; // section order for FULL mode
-  activeIdx: number; // index into order
-  phase: "asking" | "section_summary" | "finished";
+  order: Skill[]; // FULL = reading, listening, writing (speaking is teacher-conducted)
+  activeIdx: number;
+  phase: "asking" | "finished";
   currentQuestionId?: string;
-  openTask?: { level: number; id: string }; // optional open writing task offered at the end
-  openTaskOffered: boolean;
 }
+
+export type Confidence = "high" | "medium" | "low";
 
 export interface SkillResult {
   skill: Skill;
@@ -51,17 +58,23 @@ export interface SkillResult {
   accuracy: number; // weighted 0..1
   placement: number; // highest level with >= 70 percent mastery
   continuous: number; // placement + fraction, e.g. 5.6
+  confidence: Confidence;
   levelsChart: { level: number; asked: number; correct: number; pct: number }[];
   strongTopic?: string;
   weakTopic?: string;
+  source?: "system" | "teacher"; // teacher = live interview result merged in
+  criteria?: Record<string, number>;
+  assessedBy?: string;
+  assessedAt?: string;
 }
 
 export interface AttemptResult {
   mode: Mode;
-  skills: SkillResult[]; // for FULL: all 4; for single: 1
-  overallLevel: number; // continuous 0..8 (FULL mode)
+  skills: SkillResult[];
+  overallLevel: number;
   overallRounded: number;
-  fluencyPct: number; // overallLevel / 10 * 100
+  fluencyPct: number;
+  provisional: boolean; // true while the live speaking interview is missing
   band: { code: string; label: string; message: string };
   startRef: string;
   startUnit: { level: number; unit: number; unitTitle: string; lesson: number; lessonTitle: string } | null;
@@ -91,14 +104,23 @@ export interface AttemptResult {
   badges: string[];
 }
 
+// The digital exam covers the three system-assessed pillars.
+export const SYSTEM_SKILLS: Skill[] = ["reading", "listening", "writing"];
+export const SECTION_ORDER: Skill[] = SYSTEM_SKILLS;
+
 export const SECTION_LABELS: Record<Skill, string> = {
   reading: "Reading",
   listening: "Listening",
   writing: "Writing",
-  speaking: "Speaking",
+  speaking: "Speaking (live interview)",
 };
 
-const BUDGET_PER_SKILL = 14;
+// Time management: short enough to stay engaging, long enough to stay reliable.
+export const BUDGET_PER_SKILL = 10; // hard cap per pillar
+export const TARGET_MINUTES = { FULL: 22, QUICK: 9 } as Record<Mode, number>;
+export const CAP_MINUTES = { FULL: 35, QUICK: 15 } as Record<Mode, number>;
+export const TARGET_QUESTIONS = { FULL: 28, QUICK: 10 } as Record<Mode, number>;
+
 const BLOCK = 2; // questions per visit block at a level
 
 function shuffle<T>(arr: T[]): T[] {
@@ -112,18 +134,18 @@ function shuffle<T>(arr: T[]): T[] {
 
 function startLevelFor(skill: Skill, lastPlacement?: number): number {
   if (lastPlacement === undefined || lastPlacement === null) return 3; // mid of the 0-8 ladder
-  // Resume near the student's known level: start one below the placed level.
+  // Begin at the student's initial proficiency level, then let the walk move freely.
   return Math.max(0, Math.min(8, lastPlacement));
 }
 
 export function initEngineState(mode: Mode, lastPlacements?: Partial<Record<Skill, number>>): EngineState {
   const sections = {} as Record<Skill, SkillSectionState>;
-  for (const skill of SKILLS) {
+  for (const skill of SYSTEM_SKILLS) {
     const start = startLevelFor(skill, lastPlacements?.[skill]);
     sections[skill] = {
       skill,
       currentLevel: start,
-      visitedLevels: [],
+      visits: { [start]: 1 },
       askedIds: [],
       askedAtLevel: 0,
       tallies: {},
@@ -131,16 +153,14 @@ export function initEngineState(mode: Mode, lastPlacements?: Partial<Record<Skil
       done: false,
     };
   }
-  const order: Skill[] = mode === "FULL" ? [...SKILLS] : [mode];
+  const order: Skill[] = mode === "FULL" ? [...SECTION_ORDER] : [mode];
   const first = sections[order[0]];
-  first.visitedLevels.push(first.currentLevel);
   const state: EngineState = {
     mode,
     sections,
     order,
     activeIdx: 0,
     phase: "asking",
-    openTaskOffered: false,
   };
   state.currentQuestionId = pickNext(first).id;
   return state;
@@ -149,12 +169,8 @@ export function initEngineState(mode: Mode, lastPlacements?: Partial<Record<Skil
 function pickNext(section: SkillSectionState): Question {
   const pool = gradablePoolFor(section.currentLevel, section.skill);
   const fresh = pool.filter((q) => !section.askedIds.includes(q.id));
-  const usedUnits = new Set(
-    section.tallies[section.currentLevel]?.units.filter(
-      (_u, i) => i < section.askedAtLevel // units of questions asked in this visit
-    ) || []
-  );
-  // Prefer a question from a unit not yet used in this visit.
+  const usedUnits = new Set(section.tallies[section.currentLevel]?.units || []);
+  // Prefer a question from a unit not yet used at this level - variety, not repetition.
   const fromNewUnit = fresh.filter((q) => !usedUnits.has(q.unit));
   const chosen = shuffle(fromNewUnit.length > 0 ? fromNewUnit : fresh);
   if (chosen.length > 0) return chosen[0];
@@ -182,15 +198,10 @@ export interface AnswerOutcome {
   nextQuestionId?: string;
   sectionDone?: Skill;
   finished?: boolean;
-  openTaskOffered?: boolean;
 }
 
 /** Grade an answer against the current question and advance the engine. */
-export function gradeAndAdvance(
-  state: EngineState,
-  answer: string,
-  openText?: string
-): AnswerOutcome {
+export function gradeAndAdvance(state: EngineState, answer: string): AnswerOutcome {
   const section = state.sections[state.order[state.activeIdx]];
   const q = state.currentQuestionId ? getQuestion(state.currentQuestionId) : undefined;
   if (!q) return { correct: false, awardedXp: 0 };
@@ -198,7 +209,6 @@ export function gradeAndAdvance(
   const correct = gradeAnswer(q, answer);
   const awardedXp = correct ? xpFor(q) : 0;
 
-  // Record in tallies
   const tally = tallyFor(section, q.level);
   tally.asked += 1;
   tally.units.push(q.unit);
@@ -220,61 +230,48 @@ export function gradeAndAdvance(
   section.askedIds.push(q.id);
   section.askedAtLevel += 1;
 
-  // Decide next step
-  const atLevel = tally.asked;
-  const blockResults = section.lastResults.slice(-Math.min(atLevel, 3));
+  const nextLevel = (lv: number): string | undefined => {
+    // Move the walk to another level - or stop if that level already had two blocks.
+    if (lv < 0 || lv > 8 || (section.visits[lv] || 0) >= 2) {
+      return undefined; // signals section done
+    }
+    section.currentLevel = lv;
+    section.visits[lv] = (section.visits[lv] || 0) + 1;
+    section.askedAtLevel = 0;
+    section.lastResults = [];
+    return pickNext(section).id;
+  };
+
   let nextQuestionId: string | undefined;
   let sectionDone = false;
 
-  const visitedTwice = section.visitedLevels.filter((l) => l === section.currentLevel).length >= 2;
+  const atLevel = tally.asked;
   const budgetReached = section.askedIds.length >= BUDGET_PER_SKILL;
   const blockComplete = atLevel % BLOCK === 0 || atLevel >= 3;
 
-  if (budgetReached || visitedTwice) {
+  if (budgetReached) {
     sectionDone = true;
   } else if (blockComplete) {
+    const blockResults = section.lastResults.slice(-Math.min(atLevel, 3));
     const correctCount = blockResults.filter(Boolean).length;
     const total = blockResults.length;
-    const ratio = correctCount / total;
+    const ratio = total > 0 ? correctCount / total : 0;
+
     if (total >= 2 && ratio === 1) {
-      // All correct - move up
-      if (section.currentLevel >= 8) {
-        sectionDone = true;
-      } else {
-        section.currentLevel += 1;
-        section.visitedLevels.push(section.currentLevel);
-        section.askedAtLevel = 0;
-        section.lastResults = [];
-      }
+      // Demonstrated mastery - climb and test a higher level.
+      nextQuestionId = nextLevel(section.currentLevel + 1);
     } else if (total >= 2 && ratio === 0) {
-      // All wrong - move down
-      if (section.currentLevel <= 0) {
-        sectionDone = true;
-      } else {
-        section.currentLevel -= 1;
-        section.visitedLevels.push(section.currentLevel);
-        section.askedAtLevel = 0;
-        section.lastResults = [];
-      }
+      // Not yet - drop and reassess at a more appropriate level.
+      nextQuestionId = nextLevel(section.currentLevel - 1);
     } else if (atLevel < 3) {
-      // Split block - one tiebreaker question at the same level
+      // Borderline block - one tiebreaker question at the same level.
       nextQuestionId = pickNext(section).id;
     } else {
-      // After tiebreaker: majority decides
-      if (ratio >= 0.5 && section.currentLevel < 8) {
-        section.currentLevel += 1;
-        section.visitedLevels.push(section.currentLevel);
-        section.askedAtLevel = 0;
-        section.lastResults = [];
-      } else if (ratio < 0.5 && section.currentLevel > 0) {
-        section.currentLevel -= 1;
-        section.visitedLevels.push(section.currentLevel);
-        section.askedAtLevel = 0;
-        section.lastResults = [];
-      } else {
-        sectionDone = true;
-      }
+      // After the tiebreaker the majority decides.
+      if (ratio >= 0.5) nextQuestionId = nextLevel(section.currentLevel + 1);
+      else nextQuestionId = nextLevel(section.currentLevel - 1);
     }
+    sectionDone = nextQuestionId === undefined;
   } else {
     nextQuestionId = pickNext(section).id;
   }
@@ -285,7 +282,6 @@ export function gradeAndAdvance(
 
   if (sectionDone) {
     section.done = true;
-    // Advance to next section or finish
     if (state.mode !== "FULL") {
       state.phase = "finished";
       state.currentQuestionId = undefined;
@@ -294,7 +290,7 @@ export function gradeAndAdvance(
     if (state.activeIdx + 1 < state.order.length) {
       state.activeIdx += 1;
       const next = state.sections[state.order[state.activeIdx]];
-      if (!next.visitedLevels.includes(next.currentLevel)) next.visitedLevels.push(next.currentLevel);
+      if (!(next.visits[next.currentLevel] || 0)) next.visits[next.currentLevel] = 1;
       state.phase = "asking";
       state.currentQuestionId = pickNext(next).id;
       return { correct, awardedXp, sectionDone: section.skill, nextQuestionId: state.currentQuestionId };
@@ -304,10 +300,6 @@ export function gradeAndAdvance(
     return { correct, awardedXp, sectionDone: section.skill, finished: true };
   }
 
-  // After a level move, no question was queued yet - pick one at the new level.
-  if (!nextQuestionId) {
-    nextQuestionId = pickNext(section).id;
-  }
   state.currentQuestionId = nextQuestionId;
   state.phase = "asking";
   return { correct, awardedXp, nextQuestionId };
@@ -350,7 +342,7 @@ export function xpFor(q: Question): number {
 }
 
 export function xpForOpen(): number {
-  return 20; // attempt bonus for submitting the open task
+  return 20;
 }
 
 // ------------------ results ------------------
@@ -401,33 +393,38 @@ export function scoreAttempt(
         pct: t.asked > 0 ? Math.round((t.correct / t.asked) * 100) : 0,
       });
     }
-    // Placement: highest level with >= 70 percent raw mastery (>= 2 asked)
+
+    // Placement: the highest level demonstrated with >= 70 percent mastery (>= 2 questions).
     let placement = 0;
     for (const lv of levelsChart.map((l) => l.level).sort((a, b) => a - b)) {
       const t = section.tallies[lv];
       if (t.asked >= 2 && t.correct / t.asked >= 0.7) placement = Math.max(placement, lv);
-      else if (t.asked >= 3 && t.correct / t.asked >= 0.7) placement = Math.max(placement, lv);
     }
     if (levelsChart.length > 0 && placement === 0) {
-      // No level reached 70 percent: place at the best partially-mastered level
+      // No level reached 70 percent: place at the best partially-mastered level.
       const best = levelsChart.reduce((a, b) => (b.correct / b.asked >= a.correct / a.asked ? b : a));
       placement = best.pct >= 40 ? best.level : Math.max(0, best.level - 1);
     }
+
     const acc = weightedAccuracy(section, isCorrect);
     const fraction = Math.max(0, Math.min(0.99, (acc - 0.4) / 0.6)) * 0.9;
     const continuous = Math.min(8, placement + fraction);
 
+    // Confidence: how much evidence backs this placement.
+    const placedTally = section.tallies[placement];
+    const placedPct = placedTally && placedTally.asked > 0 ? placedTally.correct / placedTally.asked : 0;
+    const confidence: Confidence =
+      asked >= 6 && placedPct >= 0.5 ? "high" : asked >= 4 ? "medium" : "low";
+
     // Strong / weak topic
-    let strongTopic: string | undefined;
-    let weakTopic: string | undefined;
     const topics: { topic: string; ok: boolean }[] = [];
     for (const id of section.askedIds) {
       const q = getQuestion(id);
       if (!q) continue;
       topics.push({ topic: `${q.topic} (L${q.level} U${q.unit})`, ok: isCorrect(id) });
     }
-    strongTopic = topics.find((t) => t.ok)?.topic;
-    weakTopic = topics.find((t) => !t.ok)?.topic;
+    const strongTopic = topics.find((t) => t.ok)?.topic;
+    const weakTopic = topics.find((t) => !t.ok)?.topic;
 
     skills.push({
       skill,
@@ -436,14 +433,18 @@ export function scoreAttempt(
       accuracy: Math.round(acc * 100) / 100,
       placement,
       continuous: Math.round(continuous * 10) / 10,
+      confidence,
       levelsChart,
       strongTopic,
       weakTopic,
+      source: "system",
     });
   }
 
   const overallLevel =
-    skills.length > 1 ? Math.round((skills.reduce((s, r) => s + r.continuous, 0) / skills.length) * 10) / 10 : skills[0]?.continuous || 0;
+    skills.length > 1
+      ? Math.round((skills.reduce((s, r) => s + r.continuous, 0) / skills.length) * 10) / 10
+      : skills[0]?.continuous || 0;
   const overallRounded = Math.round(overallLevel);
   const fluencyPct = Math.round(overallLevel * 10);
   const xpEarned = log.reduce((s, o) => s + o.awardedXp, 0);
@@ -474,7 +475,7 @@ export function buildResult(
   const accuracyPct = s.totalCount > 0 ? Math.round((s.correctCount / s.totalCount) * 100) : 0;
   const band = bandFor(accuracyPct);
 
-  // Start point: weakest skill (or overall) placement level, first unit with an error
+  // Start point: weakest pillar's placement level, first unit with an error.
   const primary =
     s.skills.length > 1
       ? [...s.skills].sort((a, b) => a.continuous - b.continuous)[0]
@@ -540,6 +541,7 @@ export function buildResult(
     overallLevel: s.overallLevel,
     overallRounded: s.overallRounded,
     fluencyPct: s.fluencyPct,
+    provisional: true, // until the live speaking interview is merged in
     band,
     startRef,
     startUnit,

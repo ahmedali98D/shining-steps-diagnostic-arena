@@ -209,7 +209,16 @@ export default function Home() {
             Shining Steps academic system - Digital Diagnostic Assessment Platform
           </div>
           <div className="text-xs font-extrabold" style={{ color: C.ink }}>
-            Created by Ahmed Mahmoud Saeed Ahmed Ali
+            Created by{" "}
+            <a
+              href="https://phronesis-studio.com/en/about"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-2 underline-offset-2 hover:opacity-80"
+              style={{ color: C.coral }}
+            >
+              Ahmed Mahmoud Saeed Ahmed Ali
+            </a>
           </div>
         </div>
       </footer>

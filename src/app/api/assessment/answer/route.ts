@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { ok, fail, handleError } from "@/lib/api";
-import { gradeAndAdvance, publicQuestion } from "@/lib/diagnostic";
+import { gradeAndAdvance, publicQuestion, CAP_MINUTES } from "@/lib/diagnostic";
 import { getQuestion } from "@/lib/questions";
 
 interface WrappedState {
@@ -51,13 +51,20 @@ export async function POST(req: NextRequest) {
     });
 
     const nextQ = outcome.nextQuestionId ? publicQuestion(outcome.nextQuestionId) : null;
+
+    // Time management: past the cap, wrap the exam up with the evidence collected so far.
+    const elapsedMs = Date.now() - new Date(attempt.startedAt).getTime();
+    const capMs = (CAP_MINUTES[attempt.mode as "FULL" | "reading" | "listening" | "writing" | "speaking"] || 35) * 60000;
+    const outOfTime = elapsedMs > capMs && !outcome.finished;
+
     return ok({
       correct: outcome.correct,
       awardedXp: outcome.awardedXp,
       answer,
-      nextQuestion: nextQ,
+      nextQuestion: outOfTime ? null : nextQ,
       sectionDone: outcome.sectionDone || null,
-      finished: outcome.finished || false,
+      finished: outcome.finished || outOfTime,
+      autoFinished: outOfTime,
       skill: wrapped.engine.order[wrapped.engine.activeIdx],
       sectionIndex: wrapped.engine.activeIdx,
       answered: wrapped.log.length,

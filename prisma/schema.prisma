@@ -10,20 +10,22 @@ datasource db {
 }
 
 model User {
-  id            String       @id @default(cuid())
-  email         String       @unique
-  name          String
-  passwordHash  String
-  role          String       @default("STUDENT") // STUDENT | TEACHER | ADMIN
-  xp            Int          @default(0)
-  streak        Int          @default(0)
-  lastActiveDay String? // "YYYY-MM-DD"
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  enrollments   Enrollment[]
-  classesTaught Class[]
-  attempts      Attempt[]
-  badges        BadgeAward[]
+  id                      String       @id @default(cuid())
+  email                   String       @unique
+  name                    String
+  passwordHash            String
+  role                    String       @default("STUDENT") // STUDENT | TEACHER | ADMIN
+  xp                      Int          @default(0)
+  streak                  Int          @default(0)
+  lastActiveDay           String? // "YYYY-MM-DD"
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  enrollments             Enrollment[]
+  classesTaught           Class[]
+  attempts                Attempt[]
+  badges                  BadgeAward[]
+  speakingAssessmentsGiven SpeakingAssessment[] @relation("TeacherSpeaking")
+  speakingAssessmentsGot   SpeakingAssessment[] @relation("StudentSpeaking")
 }
 
 model Class {
@@ -94,4 +96,24 @@ model BadgeAward {
   awardedAt DateTime @default(now())
 
   @@unique([userId, code])
+}
+
+model SpeakingAssessment {
+  id             String   @id @default(cuid())
+  studentId      String
+  student        User     @relation("StudentSpeaking", fields: [studentId], references: [id])
+  teacherId      String
+  teacher        User     @relation("TeacherSpeaking", fields: [teacherId], references: [id])
+  kitLevel       Int // the interview kit used (0-8)
+  fluency        Int // 0-4 rubric anchors
+  pronunciation  Int
+  vocabulary     Int
+  grammarAccuracy Int
+  comprehension  Int
+  conversation   Int
+  level          Float // derived continuous 0-8
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+
+  @@index([studentId, createdAt])
 }

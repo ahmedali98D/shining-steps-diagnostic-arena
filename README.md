@@ -1,50 +1,75 @@
-# Shining Steps Diagnostic Arena
+# Shining Steps Fluency Ladder
 
-The official Digital Diagnostic Assessment Platform for the **Shining Steps** academic system (L0-L8), created by **Ahmed Mahmoud Saeed Ahmed Ali**.
+The official Digital Diagnostic Assessment Platform for the **Shining Steps** academic system (L0-L8), created by [Ahmed Mahmoud Saeed Ahmed Ali](https://phronesis-studio.com/en/about).
 
-A gamified, adaptive diagnostic that measures the four language pillars - Reading, Listening, Writing, Speaking - and places every student on the exact Level, Unit and Lesson of their Shining Steps book, with professional framework tagging on every question and full per-question feedback after every attempt.
+An engaging, intelligent, adaptive placement examination that measures the four language pillars and identifies a student's real proficiency level - not just how many questions they answer correctly.
 
 ---
 
-## What it does
+## Assessment methodology
 
-- **Adaptive ladder walk** - the engine starts near the student's known level and branches up or down by performance, so placement takes about 30 questions instead of 150.
-- **Four pillars, analyzed separately** - Reading, Listening, Writing, Speaking each get their own placement, continuous level (e.g. L5.4) and accuracy.
-- **Exact start point** - the report names the Level, the Unit, and the Lesson to start from (for example: "Level 4 - Pre-Intermediate II - Unit 2: Travel and Services - start from Lesson 5: The ticket").
-- **Fluency percentage** - the student sees exactly where they stand on the road to fluent English (Level 10 = 100 percent), in positive, encouraging language.
-- **Advice bands** - 90-100% Excellent, 80-89% Very Good, 70-79% Good, 60-69% Needs Revision, below 60% Repeat the Level - each with its own encouraging message and next step.
-- **Progress over time** - every attempt is compared with the previous one, in fluency percentage points, per pillar.
-- **Per-question feedback** - right or wrong, why the right answer is right, why the student's answer did not work, and the lesson reference behind each item.
-- **Framework tagging on every question** - Bloom's Revised Taxonomy, Webb's Depth of Knowledge (DOK), SOLO Taxonomy, Marzano, Understanding by Design (UbD), Universal Design for Learning (UDL).
-- **Gamification** - XP and ranks (Seed to Fluency Legend), 10 badges, day streaks, confetti, a climbing star mascot and the L0-L10 fluency ladder.
-- **Listening that really listens** - listening questions are spoken in the browser via text-to-speech, two plays per question, with a graceful transcript fallback.
-- **Three desks** - Students, Teachers (classes with join codes, live reports, Big Task grading) and the Center admin (center-wide averages, level map, verdict bands, CSV export).
+The platform follows internationally recognized language assessment principles - CEFR, established adaptive testing practice, and evidence-centered design:
 
-## The question bank
+### 1. Progressive, bidirectional difficulty
+- The exam begins at the student's initial proficiency level (their previous placement, or mid-ladder L3 for first-timers).
+- Each pillar walks the ladder in small blocks: pass a block and the exam climbs; fail a block and it intelligently drops to reassess at a more appropriate level; land in between and one tiebreaker question decides.
+- It is never a one-way staircase: the walk moves up AND down freely, revisiting levels when the evidence calls for it.
 
-153 questions anchored to the real books:
+### 2. Confirmation and confidence
+- A level is visited at most twice (initial block + confirmation block), mirroring the confirm-then-place procedure of professional adaptive placement tests.
+- Every pillar result carries a confidence rating (high / medium / low) based on the amount and agreement of the evidence, so teachers know how solid each placement is.
 
-| Level | Book | Units | Lessons | CEFR |
-| --- | --- | --- | --- | --- |
-| L0 | My First English Book | 2 | 24 | Pre-A1 |
-| L1 | My Days, My Home, My Food | 3 | 36 | A1 |
-| L2 | My Town, My Shopping, My Week | 3 | 36 | A1+ |
-| L3 | My Life, My Town, My Work | 3 | 48 | A2 |
-| L4 | My Past, My Trips, My Plans | 3 | 48 | A2+ |
-| L5 | My Stories, My Voice, My World | 6 | 92 | B1 |
-| L6 | My Case, My News, My Community | 6 | 92 | B1+ |
-| L7 | My View, My Evidence, My World | 6 | 92 | B2 |
-| L8 | My Voice, My Craft, My Future | 6 | 92 | B2+ |
+### 3. All four pillars - each assessed the right way
+| Pillar | How it is assessed | Where |
+| --- | --- | --- |
+| Reading | Adaptive questions on stories, notices, menus, timetables, essays | Digital platform |
+| Listening | Adaptive spoken dialogues and announcements, played in the browser (two plays, transcript fallback) | Digital platform |
+| Writing | Adaptive sentence construction, word order, emails and reviews, plus a Big Task graded by the teacher | Digital platform + teacher |
+| Speaking | A live one-to-one interview with a teacher-examiner using the adaptive interview kit; six criteria scored on a 0-4 rubric: fluency, pronunciation, vocabulary, grammar accuracy, comprehension, conversation | Teacher examiner |
 
-Every question carries its unit number, unit title, lesson number, lesson title and topic, so a wrong answer always points to the exact pages to revise.
+The speaking interview kit (9 kits, one per level) is generated from the actual Shining Steps books: warm-up, four prompts with their unit and lesson references, what to listen for, and explicit move-up / move-down cues - so the live interview follows the same adaptive ladder logic as the digital exam.
+
+### 4. The final placement
+- Overall level = the mean of the pillar placements, on the L0-L8 book ladder (L0 Pre-A1 ... L8 B2+, extending to L10 C1+ on the full series ladder).
+- While the live speaking interview is missing, the overall placement is clearly marked **provisional (3 of 4 pillars)**; once the teacher saves the interview, the fourth pillar merges in and the overall level and fluency percentage finalize automatically.
+- Every report shows: the fluency percentage toward a fluent voice, the CEFR band, the exact start point (Level, Unit, Lesson), the advice band (90-100% Excellent, 80-89% Very Good, 70-79% Good, 60-69% Needs Revision, below 60% Repeat the Level), and per-question feedback - why the right answer is right and why the student's answer did not work.
+
+### 5. Time management
+- The full diagnostic targets about 20-25 minutes (roughly 10 questions per pillar, capped), and quick single-pillar checks run 8-10 minutes.
+- A gentle timer shows the target; past the fairness cap the exam wraps up by itself and scores the evidence collected - reliable but never exhausting.
+
+### 6. Framework tagging on every question
+Bloom's Revised Taxonomy, Webb's Depth of Knowledge (DOK), SOLO Taxonomy, Marzano, Understanding by Design (UbD), and Universal Design for Learning (UDL).
+
+## CEFR mapping
+
+| Level | CEFR | Book |
+| --- | --- | --- |
+| L0 | Pre-A1 | My First English Book |
+| L1 | A1 | My Days, My Home, My Food |
+| L2 | A1+ | My Town, My Shopping, My Week |
+| L3 | A2 | My Life, My Town, My Work |
+| L4 | A2+ | My Past, My Trips, My Plans |
+| L5 | B1 | My Stories, My Voice, My World |
+| L6 | B1+ | My Case, My News, My Community |
+| L7 | B2 | My View, My Evidence, My World |
+| L8 | B2+ | My Voice, My Craft, My Future |
+
+153 questions, every one anchored to a real unit and lesson, tagged with the six frameworks and graded by difficulty - wrong answers always point to the exact pages to revise.
+
+## Gamification
+
+XP and ranks (Seed to Fluency Legend), ten badges, day streaks, confetti, the climbing star mascot and the L0-L10 fluency ladder - engaging without ever distracting from the measurement.
+
+## Three desks
+
+- **Student** - dashboard, adaptive exam, full report, history with progress in percentage points, badges.
+- **Teacher** - classes with join codes, live student reports, Big Task grading, and the live Speaking interview desk with the adaptive kit and rubric.
+- **Center** - center-wide averages per pillar, the level map, verdict bands and a live feed, with CSV export.
 
 ## Tech stack
 
-- Next.js 16 (App Router) + TypeScript
-- Tailwind CSS 4 + shadcn/ui
-- Prisma ORM - SQLite in local development, **PostgreSQL on Neon** in production
-- Auth: scrypt password hashing + HMAC-signed httpOnly session cookies (zero extra dependencies)
-- Server-side adaptive engine in `src/lib/diagnostic.ts` (pure, testable)
+Next.js 16 (App Router) + TypeScript, Tailwind CSS 4 + shadcn/ui, Prisma ORM (SQLite in local development, PostgreSQL on Neon in production), scrypt password hashing + HMAC-signed session cookies, and a pure server-side adaptive engine (`src/lib/diagnostic.ts`).
 
 ## Run locally
 
@@ -69,8 +94,8 @@ Students can join the demo class with code `SHINE1`.
 
 ### 1. Create the Neon database
 
-1. Sign up / log in at [neon.tech](https://neon.tech) and create a project.
-2. Copy the **pooled** connection string and the **direct** connection string (both look like `postgresql://user:pass@ep-xxx.aws.neon.tech/neondb?sslmode=require` - the pooled one has `-pooler` in the host).
+1. Sign up / log in at [neon.tech](https://neon.tech) and create a project (or use the Vercel Marketplace: Storage - Neon - Connect to your Vercel project).
+2. Copy the **pooled** connection string and the **direct** connection string.
 
 ### 2. Switch the Prisma schema to Postgres
 
@@ -89,7 +114,7 @@ bun prisma/seed.ts   # optional demo data
 
 ### 4. Deploy on Vercel
 
-1. Push this repository to GitHub (see below) and import it at [vercel.com/new](https://vercel.com/new).
+1. Import the repository at [vercel.com/new](https://vercel.com/new) as project **shining-steps-fluency-ladder**.
 2. Set the environment variables:
 
 | Variable | Value |
@@ -98,42 +123,30 @@ bun prisma/seed.ts   # optional demo data
 | `DIRECT_URL` | Neon **direct** connection string |
 | `SESSION_SECRET` | any long random string (required in production) |
 
-3. Deploy. That is it - everything runs on Vercel's Node runtime.
-
-Alternatively use the one-click button once the repo is on your GitHub account:
-
-```md
-[Deploy with Vercel](https://vercel.com/new/clone?repository-url=https://github.com/YOUR-USERNAME/shining-steps-diagnostic-arena&env=DATABASE_URL,DIRECT_URL,SESSION_SECRET)
-```
-
-## Pushing this repo to GitHub
-
-```bash
-git init -b main
-git add .
-git commit -m "Shining Steps Diagnostic Arena - first release"
-git remote add origin https://github.com/YOUR-USERNAME/shining-steps-diagnostic-arena.git
-git push -u origin main
-```
+3. Deploy - everything runs on Vercel's Node runtime. Check `GET /api/health` returns `"db": true`.
 
 ## Project structure
 
 ```
 src/
   app/
-    page.tsx                    # the whole SPA: landing, routing, role guards
+    page.tsx                    # the whole SPA: landing, hash routing, role guards
     api/
       auth/                     # signup, login, logout, me
-      assessment/               # start, answer, finish, open (Big Task)
+      assessment/               # start, answer (with time-cap wrap-up), finish, open (Big Task)
       attempts/                 # history, attempt detail, open-task prompt
-      teacher/                  # classes, review (grading + pending list)
+      teacher/                  # classes, writing review, speaking interviews
       admin/stats/              # center-wide statistics
       dashboard/                # public landing stats
+      health/                   # deployment health check
   components/platform/          # kit (design system), runner, results, student,
-                                # teacher, admin, auth
+                                # teacher (incl. speaking desk), admin, auth
   lib/
     questions/                  # the question bank: types + level_0..level_8
-    diagnostic.ts               # adaptive engine, scoring, bands, start-point logic
+    diagnostic.ts               # adaptive engine: bidirectional walk, confirmation
+                                # blocks, confidence, scoring, bands, time budgets
+    interviewKits.ts            # the 9 teacher-conducted speaking kits + rubric anchors
+    speaking.ts                 # rubric scoring + fourth-pillar merge
     gamification.ts             # XP ranks, badges, streaks
     session.ts / hash.ts        # auth (scrypt + HMAC cookie)
 prisma/
@@ -144,4 +157,4 @@ prisma/
 
 ## Ownership
 
-(c) Ahmed Mahmoud Saeed Ahmed Ali. All rights reserved. This platform is part of the Shining Steps academic system.
+(c) [Ahmed Mahmoud Saeed Ahmed Ali](https://phronesis-studio.com/en/about). All rights reserved. This platform is part of the Shining Steps academic system.
