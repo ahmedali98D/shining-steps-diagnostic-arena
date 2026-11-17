@@ -17,6 +17,7 @@ export interface RunnerQuestion {
   type: "mcq" | "multi" | "fill" | "order" | "truefalse" | "open";
   prompt: string;
   passage?: string;
+  visual?: { kind: string; alt: string; svg: string };
   audioText?: string;
   speakerLines?: { speaker: string; line: string }[];
   options?: string[];
@@ -34,7 +35,7 @@ const SECTION_ORDER: Skill[] = ["reading", "listening", "writing"];
 
 const SECTION_INTROS: Record<Skill, string> = {
   reading: "Read each text with care - the answers live on the page.",
-  listening: "Listen first, answer second. You can play each voice twice.",
+  listening: "Listen first, answer second. Play each audio up to two times.",
   writing: "Choose the sentences that are built the right way.",
   speaking: "Your speaking pillar is assessed live by your teacher.",
 };
@@ -259,9 +260,9 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
             {nextSkill ? `Next station: ${SKILL_META[nextSkill].label}. Keep your energy up!` : "Wrapping up your ladder report..."}
           </p>
           {mode === "FULL" && !nextSkill && (
-            <p className="mt-2 text-sm font-bold" style={{ color: C.soft }}>
-              Your speaking pillar comes next - your teacher will run your live interview.
-            </p>
+            <div className="mt-4 rounded-2xl p-4 text-sm font-extrabold" style={{ background: "#EFE9F7", color: C.ink }}>
+              Please inform your teacher to schedule your speaking test - the live interview completes your report.
+            </div>
           )}
           <div className="mt-6 flex justify-center">
             <BigButton onClick={continueSection} color={C.coral}>
@@ -332,25 +333,63 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
             <Chip color={color} soft={`${color}1A`}>Lesson {q.lesson}: {q.lessonTitle}</Chip>
           </div>
 
-          {/* listening player */}
+          {/* listening player - remounts per question, so the 2 plays reset every question */}
           {(q.audioText || q.speakerLines) && (
             <div className="mb-4">
-              <ListeningPlayer q={q} color={color} />
+              <ListeningPlayer key={q.id} q={q} color={color} />
             </div>
           )}
 
-          {q.passage && (
-            <div className="mb-4 rounded-2xl p-4 text-[15px] leading-relaxed whitespace-pre-line" style={{ background: "#FDF6EA", color: C.ink, border: `1px solid ${C.line}` }}>
-              {q.passage}
-            </div>
+          {/* UDL visual: map, maze, scene, strip, clock or card */}
+          {q.visual && (
+            <figure
+              className="mb-4 overflow-hidden rounded-2xl border bg-white p-2"
+              style={{ borderColor: C.line }}
+              role="img"
+              aria-label={q.visual.alt}
+            >
+              <div dangerouslySetInnerHTML={{ __html: q.visual.svg }} />
+            </figure>
           )}
 
-          <p className="mb-1 text-xs font-extrabold uppercase tracking-wide" style={{ color }}>
-            {q.topic}
-          </p>
-          <h3 className="mb-5 text-xl font-extrabold leading-snug" style={{ color: C.ink }}>
-            {q.prompt}
-          </h3>
+          {/* stimulus card: every line of the text on its own row, headers bold */}
+          {(() => {
+            const promptLines = q.prompt.split("\n");
+            const stimLines = (q.passage ? q.passage.split("\n") : promptLines.slice(1)).filter((l) => l.trim().length > 0);
+            return (
+              <>
+                {stimLines.length > 0 && (
+                  <div className="mb-4 rounded-2xl p-4" style={{ background: "#FDF6EA", border: `1px solid ${C.line}` }}>
+                    {stimLines.map((line, i) => {
+                      const headPart = line.split(":")[0] || "";
+                      const isHeader = /[A-Z]/.test(headPart) && !/[a-z]/.test(headPart) && headPart.length <= 60;
+                      return (
+                        <p
+                          key={i}
+                          className={i > 0 ? "mt-2.5" : ""}
+                          style={{
+                            color: C.ink,
+                            fontSize: 15,
+                            lineHeight: 1.55,
+                            fontWeight: isHeader ? 800 : 600,
+                            letterSpacing: isHeader ? "0.02em" : undefined,
+                          }}
+                        >
+                          {line}
+                        </p>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="mb-1 text-xs font-extrabold uppercase tracking-wide" style={{ color }}>
+                  {q.topic}
+                </p>
+                <h3 className="mb-5 text-xl font-extrabold leading-snug" style={{ color: C.ink }}>
+                  {promptLines[0]}
+                </h3>
+              </>
+            );
+          })()}
 
           {/* answer inputs */}
           {(q.type === "mcq" || q.type === "truefalse") && (
@@ -471,10 +510,12 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
 }
 
 // ---------------- listening player (TTS) ----------------
+// Two plays PER QUESTION - the component is keyed by question id, so state is
+// always fresh when a new audio arrives. No transcripts during the exam: this
+// is a listening test, and a script would turn it into reading.
 function ListeningPlayer({ q, color }: { q: RunnerQuestion; color: string }) {
   const [plays, setPlays] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [showTranscript, setShowTranscript] = useState(false);
   const supported = typeof window !== "undefined" && "speechSynthesis" in window;
   const cancelled = useRef(false);
 
@@ -524,31 +565,15 @@ function ListeningPlayer({ q, color }: { q: RunnerQuestion; color: string }) {
             {playing ? <Headphones size={22} /> : <Volume2 size={24} />}
           </button>
           <div className="text-sm font-extrabold" style={{ color: "#B25E02" }}>
-            {playing ? "Listening..." : plays === 0 ? "Tap to listen (2 plays)" : `${Math.max(0, 2 - plays)} play${2 - plays === 1 ? "" : "s"} left`}
+            {playing ? "Listening..." : plays === 0 ? "Tap to listen (2 plays for this question)" : `${Math.max(0, 2 - plays)} play${2 - plays === 1 ? "" : "s"} left for this question`}
           </div>
         </div>
-        {plays >= 2 && !playing && (
-          <button onClick={() => setShowTranscript((s) => !s)} className="text-xs font-extrabold underline" style={{ color: C.soft }}>
-            {showTranscript ? "Hide script" : "No audio? Show script"}
-          </button>
-        )}
         {!supported && (
-          <button onClick={() => setShowTranscript((s) => !s)} className="text-xs font-extrabold underline" style={{ color: C.soft }}>
-            Audio unsupported - show script
-          </button>
+          <div className="max-w-[200px] text-right text-[11px] font-extrabold leading-tight" style={{ color: C.coral }}>
+            This browser cannot play audio. Please use Chrome, Edge or Safari.
+          </div>
         )}
       </div>
-      {showTranscript && (
-        <div className="mt-3 rounded-xl bg-white/80 p-3 text-sm font-semibold" style={{ color: C.ink }}>
-          {q.speakerLines
-            ? q.speakerLines.map((l, i) => (
-                <div key={i}>
-                  <b>{l.speaker}:</b> {l.line}
-                </div>
-              ))
-            : q.audioText}
-        </div>
-      )}
     </div>
   );
 }

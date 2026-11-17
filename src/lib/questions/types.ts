@@ -16,6 +16,14 @@ export interface SpeakerLine {
   line: string;
 }
 
+// UDL representation layer: an inline SVG picture (map, maze, scene, strip,
+// clock, card) rendered next to the question so students can listen AND look.
+export interface QVisual {
+  kind: "map" | "maze" | "scene" | "strip" | "clock" | "card";
+  alt: string;
+  svg: string;
+}
+
 export interface Question {
   id: string;
   skill: Skill;
@@ -28,6 +36,7 @@ export interface Question {
   type: QType;
   prompt: string;
   passage?: string;
+  visual?: QVisual;
   audioText?: string; // single-voice listening script (spoken via TTS)
   speakerLines?: SpeakerLine[]; // multi-voice listening script
   options?: string[];

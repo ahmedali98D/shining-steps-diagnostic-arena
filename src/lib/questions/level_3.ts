@@ -92,7 +92,8 @@ const book: LevelBook = {
     {
       id: "L3-L-2", skill: "listening", level: 3, unit: 2, unitTitle: "Out and About", lesson: 9, lessonTitle: "Following directions",
       topic: "Longer routes by ear", type: "mcq",
-      prompt: "Listen to the directions. What do you pass BEFORE the bank?\n'Go straight and go past the cafe. Cross the street. The bank is opposite the school.'",
+      prompt: "Listen to the directions. What do you pass BEFORE the bank?",
+      audioText: "Go straight and go past the cafe. Cross the street. The bank is opposite the school.",
       options: ["The school", "The cafe", "The park", "The station"],
       answer: "The cafe",
       explain: "The route says 'go past the cafe' before you cross the street and reach the bank. Building longer routes with take, go past, cross, opposite is the Lesson 9 skill.",

@@ -55,7 +55,11 @@ Bloom's Revised Taxonomy, Webb's Depth of Knowledge (DOK), SOLO Taxonomy, Marzan
 | L7 | B2 | My View, My Evidence, My World |
 | L8 | B2+ | My Voice, My Craft, My Future |
 
-153 questions, every one anchored to a real unit and lesson, tagged with the six frameworks and graded by difficulty - wrong answers always point to the exact pages to revise.
+158 questions, every one anchored to a real unit and lesson, tagged with the six frameworks and graded by difficulty - wrong answers always point to the exact pages to revise. 25 of them carry an inline SVG visual (town maps, a maze, scenes, picture strips, a clock, menu and price cards), and five are new audio+picture multimodal items, so younger students can listen and look at the same time - true UDL Representation, following the listen-and-look practice of international young-learner assessments.
+
+### 4. Listening fairness rules
+- Every listening audio can be played **twice per question** - the counter resets on every new question, so students never run out of plays mid-section.
+- No transcripts during the exam: a listening test stays a listening test. Scripts live only in the teacher materials.
 
 ## Gamification
 

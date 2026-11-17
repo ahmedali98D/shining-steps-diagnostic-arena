@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight, Award, BookOpenCheck, ChevronDown, Flame, RefreshCcw,
+  ArrowRight, Award, BookOpenCheck, CalendarCheck, ChevronDown, Flame, RefreshCcw,
   Sparkles, TrendingUp, Trophy, Volume2,
 } from "lucide-react";
 import { BigButton, Bar, Card, C, Chip, Confetti, FrameworkChips, Ladder, Mascot, Ring, SkillChip, Spinner, api } from "./kit";
@@ -160,6 +160,25 @@ export default function ResultsView({ attemptId, onGoHome, onRetake }: { attempt
           </div>
         )}
       </Card>
+
+      {/* next step: schedule the speaking interview */}
+      {isFull && r?.provisional && (
+        <Card className="mt-6 p-6" style={{ borderTop: "4px solid #6B4FA0" }}>
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full" style={{ background: "#EFE9F7" }}>
+              <CalendarCheck size={26} color="#6B4FA0" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black leading-snug" style={{ fontFamily: "var(--font-baloo), 'Baloo 2', sans-serif", color: C.ink }}>
+                One step left: please inform your teacher to schedule your speaking test
+              </h2>
+              <p className="mt-1.5 font-semibold leading-relaxed" style={{ color: C.soft }}>
+                Your digital pillars are done - amazing work! The speaking pillar is a friendly one-to-one interview with your teacher. Tell your teacher today so they can book your interview slot. Once it is done, your final level and fluency percentage are locked in here automatically.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* ladder + skills */}
       {isFull && (

@@ -570,6 +570,7 @@ export function publicQuestion(qid: string) {
     type: q.type,
     prompt: q.prompt,
     passage: q.passage,
+    visual: q.visual,
     audioText: q.audioText,
     speakerLines: q.speakerLines,
     options: q.options,
