@@ -114,16 +114,19 @@ bun prisma/seed.ts   # optional demo data
 
 ### 4. Deploy on Vercel
 
-1. Import the repository at [vercel.com/new](https://vercel.com/new) as project **shining-steps-fluency-ladder**.
+1. Import the repository at [vercel.com/new](https://vercel.com/new) as project **shining-steps-fluency-ladder** (already created: [shining-steps-fluency-ladder.vercel.app](https://shining-steps-fluency-ladder.vercel.app)).
 2. Set the environment variables:
 
 | Variable | Value |
 | --- | --- |
 | `DATABASE_URL` | Neon **pooled** connection string |
-| `DIRECT_URL` | Neon **direct** connection string |
+| `DATABASE_URL_UNPOOLED` | Neon **direct** connection string (used for migrations) |
 | `SESSION_SECRET` | any long random string (required in production) |
 
-3. Deploy - everything runs on Vercel's Node runtime. Check `GET /api/health` returns `"db": true`.
+3. Deploy - the build automatically switches Prisma to the Neon Postgres schema when `DATABASE_URL` is a Postgres connection string (`prisma/prepare-schema.js`). Everything runs on Vercel's Node runtime.
+4. Check `GET /api/health` returns `"db": true`.
+
+Note: if you deploy with the Vercel CLI instead, move your local `.env` file away first - the CLI injects local `.env` files into the deployment, which would override the project environment.
 
 ## Project structure
 
