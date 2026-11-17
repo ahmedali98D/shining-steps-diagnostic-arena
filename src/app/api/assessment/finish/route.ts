@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     // Update user: xp, streak, badges
     const lastActiveDay = (await db.user.findUnique({ where: { id: user.id } }))?.lastActiveDay;
-    const newStreak = nextStreak(lastActiveDay, user.streak, today);
+    const newStreak = nextStreak(lastActiveDay ?? undefined, user.streak, today);
     const badgeCodes = (await db.badgeAward.findMany({ where: { userId: user.id } })).map((b) => b.code);
     const newBadges = badges.filter((b) => !badgeCodes.includes(b));
 

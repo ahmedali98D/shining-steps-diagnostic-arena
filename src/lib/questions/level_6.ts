@@ -249,7 +249,7 @@ const book: LevelBook = {
       prompt: "Big Task writing: draft a short argument essay (130 to 160 words) on one school question you care about (for example: phones in school). Use the four-box essay map: opening, two sides, counter-argument, verdict. Your teacher will read your essay and give you a score and a comment.",
       answer: "",
       explain: "The teacher reads this essay. Look at: both sides argued fairly, although/however/despite in place, a real counter-argument, and a balanced verdict.",
-      bloom: "Create", dok: 4, solo: "Extended Abstract", marzano: "Knowledge Utilization", ubd: "Evaluate", udl: "Action and Expression", diff: 4,
+      bloom: "Create", dok: 4, solo: "Extended Abstract", marzano: "Knowledge Utilization", ubd: "Perspective", udl: "Action and Expression", diff: 3,
     },
   ],
 };

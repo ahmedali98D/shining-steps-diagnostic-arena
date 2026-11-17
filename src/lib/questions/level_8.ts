@@ -30,7 +30,7 @@ const book: LevelBook = {
         "Room 2 - the evidence": "Room 2 carries a named source and a number - the strongest room.",
         "Room 3 - the counter-argument": "Room 3 states the objection and answers it with an engineering rating.",
       },
-      bloom: "Evaluate", dok: 3, solo: "Relational", marzano: "Analysis", ubd: "Evaluate", udl: "Representation", diff: 3,
+      bloom: "Evaluate", dok: 3, solo: "Relational", marzano: "Analysis", ubd: "Perspective", udl: "Representation", diff: 3,
     },
     {
       id: "L8-R-2", skill: "reading", level: 8, unit: 2, unitTitle: "Complex Texts", lesson: 1, lessonTitle: "Said and meant",
@@ -210,7 +210,7 @@ const book: LevelBook = {
         "Nobody disagrees because I am always right.": "A real counter-argument is required, not denial.",
         "The bike lane is cheap, the critics are wrong, the end of the story forever.": "Overclaim and no evidence.",
       },
-      bloom: "Evaluate", dok: 4, solo: "Extended Abstract", marzano: "Analysis", ubd: "Evaluate", udl: "Action and Expression", diff: 3,
+      bloom: "Evaluate", dok: 4, solo: "Extended Abstract", marzano: "Analysis", ubd: "Perspective", udl: "Action and Expression", diff: 3,
     },
     {
       id: "L8-W-2", skill: "writing", level: 8, unit: 3, unitTitle: "Professional Communication", lesson: 2, lessonTitle: "The formal email",
@@ -255,7 +255,7 @@ const book: LevelBook = {
       prompt: "Big Task writing: write a critical response (150 to 180 words) to one text you know well (a story, an article, or a speech). Take a clear position, carry one piece of quoted evidence, and earn your verdict. Your teacher will read your response and give you a score and a comment.",
       answer: "",
       explain: "The teacher reads this critical response. Look at: position taken, evidence carried, a fair turn, and a verdict the text has earned.",
-      bloom: "Create", dok: 4, solo: "Extended Abstract", marzano: "Knowledge Utilization", ubd: "Evaluate", udl: "Action and Expression", diff: 4,
+      bloom: "Create", dok: 4, solo: "Extended Abstract", marzano: "Knowledge Utilization", ubd: "Perspective", udl: "Action and Expression", diff: 3,
     },
   ],
 };

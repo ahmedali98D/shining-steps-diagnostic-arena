@@ -172,16 +172,28 @@ export function Ring({
 
 // ---------------- fluency ladder ----------------
 export function Ladder({ current, compact }: { current: number; compact?: boolean }) {
-  // L0..L10 steps (the series tops at L10), highlight the current rung
+  // L0..L10 steps (the series tops at L10), highlight the current rung.
+  // The viewBox is computed from the exact content geometry so nothing is ever
+  // clipped: labels get room on the left, the mascot star gets room on the right.
   const rungs = useMemo(() => Array.from({ length: 11 }, (_, i) => i), []);
   const cur = Math.max(0, Math.min(10, Math.round(current)));
   const stepW = compact ? 7.2 : 8.4;
   const h = compact ? 120 : 170;
+  const stepX = stepW / 1.6; // horizontal advance per rung
+  const rungW = stepW * 9.2; // rung bar width
+  const x0Base = 20; // left margin - room for the L0 label
+  const W = Math.ceil(x0Base + 10 * stepX + rungW + 20); // right margin - room for the star
+  const rungX = (i: number) => x0Base + i * stepX;
   return (
-    <svg viewBox={`0 0 110 ${h}`} style={{ width: "100%", maxWidth: compact ? 300 : 420 }}>
+    <svg
+      viewBox={`0 0 ${W} ${h}`}
+      style={{ width: "100%", maxWidth: compact ? 360 : 480, overflow: "visible" }}
+      role="img"
+      aria-label="The Shining Steps fluency ladder from L0 to L10"
+    >
       {rungs.map((i) => {
         const y = h - 14 - (i * (h - 30)) / 10;
-        const x0 = 12 + (i * stepW) / 1.6;
+        const x0 = rungX(i);
         const reached = i <= cur;
         const isCur = i === cur;
         return (
@@ -189,7 +201,7 @@ export function Ladder({ current, compact }: { current: number; compact?: boolea
             <rect
               x={x0}
               y={y}
-              width={stepW * 9.2}
+              width={rungW}
               height={10}
               rx={5}
               fill={reached ? (isCur ? C.amber : C.teal) : "#EFE3D3"}
@@ -203,10 +215,10 @@ export function Ladder({ current, compact }: { current: number; compact?: boolea
       })}
       {/* mascot star on the current rung */}
       <g>
-        <circle cx={12 + (cur * stepW) / 1.6 + stepW * 9.2 + 8} cy={h - 9 - (cur * (h - 30)) / 10} r={7.5} fill={C.coral} />
-        <circle cx={12 + (cur * stepW) / 1.6 + stepW * 9.2 + 5.6} cy={h - 11 - (cur * (h - 30)) / 10} r={1.1} fill="#fff" />
-        <circle cx={12 + (cur * stepW) / 1.6 + stepW * 9.2 + 10.4} cy={h - 11 - (cur * (h - 30)) / 10} r={1.1} fill="#fff" />
-        <path d={`M ${12 + (cur * stepW) / 1.6 + stepW * 9.2 + 5.4} ${h - 6.5 - (cur * (h - 30)) / 10} q 2.6 2.4 5.2 0`} stroke="#fff" strokeWidth={1.1} fill="none" strokeLinecap="round" />
+        <circle cx={rungX(cur) + rungW + 8} cy={h - 9 - (cur * (h - 30)) / 10} r={7.5} fill={C.coral} />
+        <circle cx={rungX(cur) + rungW + 5.6} cy={h - 11 - (cur * (h - 30)) / 10} r={1.1} fill="#fff" />
+        <circle cx={rungX(cur) + rungW + 10.4} cy={h - 11 - (cur * (h - 30)) / 10} r={1.1} fill="#fff" />
+        <path d={`M ${rungX(cur) + rungW + 5.4} ${h - 6.5 - (cur * (h - 30)) / 10} q 2.6 2.4 5.2 0`} stroke="#fff" strokeWidth={1.1} fill="none" strokeLinecap="round" />
       </g>
     </svg>
   );

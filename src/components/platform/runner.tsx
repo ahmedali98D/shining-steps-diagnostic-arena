@@ -58,6 +58,12 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
   const [now, setNow] = useState(Date.now());
   const finishingRef = useRef(false);
 
+  // answer state (one answer input per question type)
+  const [selected, setSelected] = useState("");
+  const [multi, setMulti] = useState<string[]>([]);
+  const [text, setText] = useState("");
+  const [ordered, setOrdered] = useState<string[]>([]);
+
   const start = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -178,12 +184,13 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
       return;
     }
     // small delay so the player sees the correct/wrong pulse
+    const data = res.data;
     setTimeout(() => {
       setLastOutcome(null);
       resetAnswerState();
-      setQuestion(res.data.nextQuestion);
-      setSkill(res.data.skill);
-      setSectionIndex(res.data.sectionIndex);
+      setQuestion(data.nextQuestion);
+      setSkill(data.skill);
+      setSectionIndex(data.sectionIndex);
     }, 650);
   };
 
@@ -399,7 +406,7 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
               onKeyDown={(e) => e.key === "Enter" && submit()}
               placeholder="Type your answer..."
               className="w-full rounded-2xl border-2 px-5 py-3.5 text-lg font-bold outline-none focus:ring-4"
-              style={{ borderColor: C.line, color: C.ink, focusRingColor: `${color}44` }}
+              style={{ borderColor: C.line, color: C.ink }}
             />
           )}
 

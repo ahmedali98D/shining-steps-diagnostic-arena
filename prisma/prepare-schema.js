@@ -6,7 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const root = path.join(__dirname, "..", "..");
+const root = path.join(__dirname, ".."); // prisma/ -> project root
 const main = path.join(root, "prisma", "schema.prisma");
 const postgres = path.join(root, "prisma", "schema.postgres.prisma");
 

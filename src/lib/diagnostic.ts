@@ -116,10 +116,11 @@ export const SECTION_LABELS: Record<Skill, string> = {
 };
 
 // Time management: short enough to stay engaging, long enough to stay reliable.
+// Single-skill quick checks run a shorter budget than the full diagnostic.
 export const BUDGET_PER_SKILL = 10; // hard cap per pillar
-export const TARGET_MINUTES = { FULL: 22, QUICK: 9 } as Record<Mode, number>;
-export const CAP_MINUTES = { FULL: 35, QUICK: 15 } as Record<Mode, number>;
-export const TARGET_QUESTIONS = { FULL: 28, QUICK: 10 } as Record<Mode, number>;
+export const TARGET_MINUTES: Record<Mode, number> = { FULL: 22, reading: 9, listening: 9, writing: 9, speaking: 9 };
+export const CAP_MINUTES: Record<Mode, number> = { FULL: 35, reading: 15, listening: 15, writing: 15, speaking: 15 };
+export const TARGET_QUESTIONS: Record<Mode, number> = { FULL: 28, reading: 10, listening: 10, writing: 10, speaking: 10 };
 
 const BLOCK = 2; // questions per visit block at a level
 

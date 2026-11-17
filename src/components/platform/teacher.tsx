@@ -156,7 +156,7 @@ export default function TeacherHome({ name, onSignOut, onOpenAttempt }: { name: 
         ) : (
           <div className="grid gap-4">
             {classes.map((cl) => (
-              <div key={cl.id} className="rounded-2xl p-4" style={{ background: "#FDF6EA", border: `1px solid ${C.line}` }}>
+              <div key={cl.id} className="min-w-0 rounded-2xl p-4" style={{ background: "#FDF6EA", border: `1px solid ${C.line}` }}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-black text-lg" style={{ color: C.ink }}>{cl.name}</div>
                   <Chip color={C.violet}>Join code: {cl.code}</Chip>
@@ -353,7 +353,7 @@ function SpeakingPanel({ students, onDone }: { students: SpeakingStudent[]; onDo
       {/* existing assessments */}
       <div className="mt-4 grid gap-2">
         {students.filter((s) => s.speaking).map((s) => (
-          <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-white px-3 py-2" style={{ border: `1px solid ${C.line}` }}>
+          <div key={s.id} className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl bg-white px-3 py-2" style={{ border: `1px solid ${C.line}` }}>
             <span className="text-sm font-extrabold" style={{ color: C.ink }}>{s.name}</span>
             <Chip color={C.teal}>L{s.speaking!.level} ({cefrOfLevel(s.speaking!.level)})</Chip>
             <SkillChip skill={"speaking" as Skill} />

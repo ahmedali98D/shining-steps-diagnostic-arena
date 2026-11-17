@@ -146,7 +146,7 @@ export default function StudentHome({
                 const isTeacherAssessed = sk?.source === "teacher" && sk.continuous > 0;
                 const isPending = s === "speaking" && !isTeacherAssessed;
                 return (
-                  <div key={s} className="rounded-2xl p-4" style={{ background: m.soft, border: `1px solid ${C.line}` }}>
+                  <div key={s} className="min-w-0 rounded-2xl p-4" style={{ background: m.soft, border: `1px solid ${C.line}` }}>
                     <div className="flex items-center justify-between">
                       <SkillChip skill={s} />
                       <span className="text-sm font-black" style={{ color: m.color }}>
@@ -248,7 +248,7 @@ export default function StudentHome({
                 <button
                   key={a.id}
                   onClick={() => onOpenAttempt(a.id)}
-                  className="flex flex-wrap items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all hover:scale-[1.01]"
+                  className="flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all hover:scale-[1.01]"
                   style={{ borderColor: C.line, background: i === 0 ? "#FDF6EA" : "#fff" }}
                 >
                   <span className="font-black text-lg" style={{ fontFamily: "var(--font-baloo), 'Baloo 2', sans-serif", color: a.mode === "FULL" ? C.teal : C.violet }}>

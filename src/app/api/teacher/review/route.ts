@@ -57,7 +57,7 @@ export async function GET() {
     const responses = await db.response.findMany({
       where: {
         openText: { not: null },
-        reviewedScore: null,
+        reviewScore: null,
         attempt: studentIds ? { studentId: { in: studentIds } } : undefined,
       },
       include: {

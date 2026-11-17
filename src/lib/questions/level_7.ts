@@ -33,7 +33,7 @@ const book: LevelBook = {
       bloom: "Analyze", dok: 3, solo: "Relational", marzano: "Analysis", ubd: "Interpret", udl: "Representation", diff: 3,
     },
     {
-      id: "L7-R-2", skill: "reading", level: 7, unit: 2, unitTitle: "Investigating Issues", lesson: 3, lessonTitle: "The writer s stance",
+      id: "L7-R-2", skill: "reading", level: 7, unit: 2, unitTitle: "Investigating Issues", lesson: 3, lessonTitle: "The writer's stance",
       topic: "Neutralizing loaded language", type: "mcq",
       prompt: "Which rewrite removes the loaded language but keeps the fact?\nLOADED: 'The reckless mayor wasted millions on his vanity ferry project.'",
       options: ["The mayor threw money into a silly boat toy.", "The ferry project has cost several million dollars of public money.", "The mayor bravely saved the city with ferries.", "Nobody knows anything about the money."],
@@ -261,7 +261,7 @@ const book: LevelBook = {
       prompt: "Big Task writing: draft a complete opinion text (150 to 180 words) in the five-part shape: hook, thesis, one developed reason with evidence, one concession with a turn, and a verdict. Choose a school or community issue you know well. Your teacher will read your text and give you a score and a comment.",
       answer: "",
       explain: "The teacher reads this opinion text. Look at: a controlling thesis, hedged claims, one named source, a fair concession, and a landing verdict.",
-      bloom: "Create", dok: 4, solo: "Extended Abstract", marzano: "Knowledge Utilization", ubd: "Evaluate", udl: "Action and Expression", diff: 4,
+      bloom: "Create", dok: 4, solo: "Extended Abstract", marzano: "Knowledge Utilization", ubd: "Perspective", udl: "Action and Expression", diff: 3,
     },
   ],
 };

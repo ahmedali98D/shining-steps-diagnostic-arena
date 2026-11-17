@@ -180,7 +180,7 @@ export default function ResultsView({ attemptId, onGoHome, onRetake }: { attempt
                 grammarAccuracy: "Grammar", comprehension: "Comprehension", conversation: "Conversation",
               };
               return (
-                <div key={s.skill} className="rounded-2xl p-4" style={{ background: m.soft, border: `1px solid ${C.line}` }}>
+                <div key={s.skill} className="min-w-0 rounded-2xl p-4" style={{ background: m.soft, border: `1px solid ${C.line}` }}>
                   <div className="flex items-center justify-between">
                     <SkillChip skill={s.skill} />
                     <span className="text-sm font-black" style={{ color: m.color }}>
@@ -294,7 +294,7 @@ export default function ResultsView({ attemptId, onGoHome, onRetake }: { attempt
             const isOpen = openItem === f.id;
             const correctColor = f.correct ? C.teal : C.coral;
             return (
-              <div key={f.id} className="overflow-hidden rounded-2xl border-2" style={{ borderColor: isOpen ? correctColor : C.line }}>
+              <div key={f.id} className="min-w-0 overflow-hidden rounded-2xl border-2" style={{ borderColor: isOpen ? correctColor : C.line }}>
                 <button
                   onClick={() => setOpenItem(isOpen ? null : f.id)}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-orange-50/50"
@@ -315,7 +315,7 @@ export default function ResultsView({ attemptId, onGoHome, onRetake }: { attempt
                     </div>
                   </div>
                   <span className="text-xs font-black" style={{ color: f.correct ? C.teal : C.coral }}>
-                    {f.awardedXp > 0 ? `+${f.awardedXp} XP` : f.type === "open" ? (f.reviewScore != null ? `${f.reviewScore}/100` : "in review") : "0 XP"}
+                    {f.awardedXp > 0 ? `+${f.awardedXp} XP` : q.type === "open" ? (f.reviewScore != null ? `${f.reviewScore}/100` : "in review") : "0 XP"}
                   </span>
                   <ChevronDown size={18} style={{ color: C.soft, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
                 </button>

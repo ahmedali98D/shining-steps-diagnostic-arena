@@ -135,7 +135,7 @@ export default function AdminHome({ name, onSignOut }: { name: string; onSignOut
             </div>
             <div className="grid gap-2">
               {stats.recent.map((a) => (
-                <div key={a.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-white px-3 py-2" style={{ border: `1px solid ${C.line}` }}>
+                <div key={a.id} className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl bg-white px-3 py-2" style={{ border: `1px solid ${C.line}` }}>
                   <Chip color={a.mode === "FULL" ? C.teal : C.violet}>{a.mode === "FULL" ? "Full" : a.mode}</Chip>
                   <span className="text-sm font-extrabold" style={{ color: C.ink }}>Level {a.overallLevel ?? "-"} - {a.fluencyPct ?? 0}% fluency</span>
                   {a.bandCode && <Chip color={BAND_COLORS[a.bandCode] || C.teal}>{a.bandCode.replace("_", " ").toLowerCase()}</Chip>}

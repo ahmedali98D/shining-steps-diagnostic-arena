@@ -16,8 +16,10 @@ export async function POST(req: NextRequest) {
     if (user.role !== "STUDENT") return fail("Only students take assessments", 403);
 
     const body = await req.json().catch(() => ({}));
-    const modeRaw = String(body.mode || "FULL").toUpperCase() as Mode;
-    const mode: Mode = modeRaw === "FULL" || SKILLS.includes(modeRaw as never) ? modeRaw : "FULL";
+    const raw = String(body.mode || "FULL");
+    const lower = raw.toLowerCase();
+    // Accept any letter case; canonical modes are "FULL" and the lowercase skills.
+    const mode: Mode = lower === "full" ? "FULL" : SKILLS.includes(lower as never) ? (lower as Mode) : "FULL";
 
     // Resume an in-progress attempt of the same mode if one exists
     const existing = await db.attempt.findFirst({

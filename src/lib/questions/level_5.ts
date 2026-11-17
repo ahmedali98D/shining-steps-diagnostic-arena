@@ -213,7 +213,7 @@ const book: LevelBook = {
         "I liked it because it is good.": "'it is good' is too vague - name the real reasons.",
         "Go there or do not go there, your choice.": "That is not a verdict - it avoids the judgment.",
       },
-      bloom: "Evaluate", dok: 3, solo: "Relational", marzano: "Analysis", ubd: "Evaluate", udl: "Action and Expression", diff: 3,
+      bloom: "Evaluate", dok: 3, solo: "Relational", marzano: "Analysis", ubd: "Explain", udl: "Action and Expression", diff: 3,
     },
     {
       id: "L5-W-2", skill: "writing", level: 5, unit: 3, unitTitle: "Getting Things Done", lesson: 7, lessonTitle: "The complaint email",
@@ -253,7 +253,7 @@ const book: LevelBook = {
       prompt: "Big Task writing: write a six-sentence review of a real place you know (a cafe, a park, a shop, or a museum). Give it a star rating, two because-reasons, and an honest verdict at the end. Your teacher will read your review and give you a score and a comment.",
       answer: "",
       explain: "The teacher reads this review. Look at: star rating, specific because-reasons, an honest verdict, and B1 control of tenses.",
-      bloom: "Create", dok: 3, solo: "Extended Abstract", marzano: "Knowledge Utilization", ubd: "Evaluate", udl: "Action and Expression", diff: 3,
+      bloom: "Create", dok: 3, solo: "Extended Abstract", marzano: "Knowledge Utilization", ubd: "Perspective", udl: "Action and Expression", diff: 3,
     },
   ],
 };

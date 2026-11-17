@@ -37,6 +37,14 @@ export default function Home() {
     setLoading(false);
   }, []);
 
+  // After a successful sign-in, hold the loading screen until the session
+  // refresh completes - otherwise the role guard could bounce the user back
+  // to the auth page while /api/auth/me is still in flight (slow networks).
+  const onAuthed = useCallback(() => {
+    setLoading(true);
+    void refreshMe();
+  }, [refreshMe]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- async data load on mount
     refreshMe();
@@ -72,7 +80,7 @@ export default function Home() {
       </div>
     );
   } else if (view === "auth") {
-    content = <AuthView onAuthed={refreshMe} goHome={() => go("")} />;
+    content = <AuthView onAuthed={onAuthed} goHome={() => go("")} />;
   } else if (view === "student") {
     content = me ? (
       me.user.role === "STUDENT" ? (
