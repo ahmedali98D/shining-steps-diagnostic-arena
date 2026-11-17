@@ -76,6 +76,19 @@ export function computeBadges(args: {
   return Array.from(new Set(out));
 }
 
+// Calendar day in the center's timezone (Asia/Dubai).
+// Vercel functions run in UTC, so the local day must be computed explicitly -
+// otherwise an exam finished between 00:00 and 04:00 UAE time lands on the
+// wrong day and silently resets the streak.
+export function activeDay(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Dubai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 export function nextStreak(lastActiveDay: string | undefined, streak: number, today: string): number {
   if (!lastActiveDay) return 1;
   if (lastActiveDay === today) return Math.max(1, streak);

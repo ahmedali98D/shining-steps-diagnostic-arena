@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { ok, fail, handleError } from "@/lib/api";
 import { buildResult, scoreAttempt } from "@/lib/diagnostic";
-import { computeBadges, nextStreak } from "@/lib/gamification";
+import { computeBadges, nextStreak, activeDay } from "@/lib/gamification";
 
 interface WrappedState {
   engine: ReturnType<typeof import("@/lib/diagnostic").initEngineState>;
@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Streak + badges
-    const today = new Date().toISOString().slice(0, 10);
+    // Streak + badges (day boundary follows the center's timezone, not UTC)
+    const today = activeDay();
     const allAttempts = await db.attempt.count({ where: { studentId: user.id, status: "COMPLETED" } });
     const badges = computeBadges({
       completedAttempts: allAttempts + 1,
