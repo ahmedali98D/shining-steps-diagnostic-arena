@@ -295,7 +295,7 @@ const EXTRA: Question[] = [
     topic: "Weather and clothes together", type: "mcq",
     prompt: "Look at the clothes and listen about Sara. What does Sara wear?",
     audioText: "Look at the clothes. Listen about Sara's day. It is rainy and a little cold in London today. What does Sara wear?",
-    visual: V["L2-L-3"],
+    visual: V["L2-L-6"],
     options: ["A coat and boots", "Sunglasses and a sun hat", "A T-shirt", "A swimming suit"],
     answer: "A coat and boots",
     explain: "Rainy and cold weather asks for a coat and boots. Connecting the weather you hear to the right clothes is the Lesson 3 skill.",
