@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// LOCAL DEVELOPMENT: provider = "sqlite" with DATABASE_URL=file:./db/custom.db
+// PRODUCTION (Neon Postgres): copy schema.postgres.prisma over this file (see README).
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String
+  passwordHash  String
+  role          String       @default("STUDENT") // STUDENT | TEACHER | ADMIN
+  xp            Int          @default(0)
+  streak        Int          @default(0)
+  lastActiveDay String? // "YYYY-MM-DD"
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  enrollments   Enrollment[]
+  classesTaught Class[]
+  attempts      Attempt[]
+  badges        BadgeAward[]
+}
+
+model Class {
+  id          String       @id @default(cuid())
+  name        String
+  code        String       @unique
+  teacherId   String
+  teacher     User         @relation(fields: [teacherId], references: [id])
+  enrollments Enrollment[]
+  createdAt   DateTime     @default(now())
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  classId   String
+  studentId String
+  class     Class    @relation(fields: [classId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([classId, studentId])
+}
+
+model Attempt {
+  id          String     @id @default(cuid())
+  studentId   String
+  student     User       @relation(fields: [studentId], references: [id])
+  mode        String // FULL | LISTENING | SPEAKING | READING | WRITING
+  status      String     @default("IN_PROGRESS") // IN_PROGRESS | COMPLETED
+  state       String     @default("{}") // adaptive engine state, JSON string
+  overallLevel Float?
+  fluencyPct  Float?
+  bandCode    String? // EXCELLENT | VERY_GOOD | GOOD | REVISE | REPEAT
+  startRef    String? // "Level 5 - Unit 2: Opinions and Choices - from Lesson 3"
+  resultJson  String? // full result snapshot, JSON string
+  xpEarned    Int        @default(0)
+  correctCount Int       @default(0)
+  totalCount  Int        @default(0)
+  startedAt   DateTime   @default(now())
+  finishedAt  DateTime?
+  responses   Response[]
+}
+
+model Response {
+  id            String    @id @default(cuid())
+  attemptId     String
+  attempt       Attempt   @relation(fields: [attemptId], references: [id])
+  questionId    String
+  skill         String // listening | speaking | reading | writing
+  level         Int
+  unit          Int
+  answerText    String    @default("")
+  correct       Boolean   @default(false)
+  awardedXp     Int       @default(0)
+  openText      String? // student submission for the open writing task
+  reviewScore   Int? // teacher review 0-100
+  reviewComment String?
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
+}
+
+model BadgeAward {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  code      String
+  awardedAt DateTime @default(now())
+
+  @@unique([userId, code])
+}
