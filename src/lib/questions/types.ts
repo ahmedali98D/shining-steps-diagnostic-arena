@@ -16,12 +16,36 @@ export interface SpeakerLine {
   line: string;
 }
 
-// UDL representation layer: an inline SVG picture (map, maze, scene, strip,
-// clock, card) rendered next to the question so students can listen AND look.
+// UDL representation layer: the picture shown next to a question so students
+// can listen AND look. Two render paths:
+//  - svg: fully vector visuals (town maps, maze, clock, night-sky star count,
+//    frequency calendars) drawn in code so geometry stays exact.
+//  - structured data (src / tiles / items): illustrated assets rendered by the
+//    runner as responsive HTML (scenes, picture strips, menu and price cards,
+//    shop shelves).
+export interface QTile {
+  src?: string; // illustration image
+  label?: string;
+  glyph?: "apple" | "book" | "cat" | "egg" | "ball" | "note" | "palette" | "snow";
+}
+
+export interface QCardRow {
+  group?: string; // section header, e.g. STARTERS
+  name?: string;
+  price?: string;
+  src?: string;
+  badge?: string; // e.g. SALE
+}
+
 export interface QVisual {
-  kind: "map" | "maze" | "scene" | "strip" | "clock" | "card";
+  kind: "map" | "maze" | "scene" | "strip" | "clock" | "card" | "shelf" | "sky";
   alt: string;
-  svg: string;
+  svg?: string;
+  src?: string; // scene image
+  ar?: number; // aspect ratio (w/h) for scene images
+  title?: string; // card / shelf title
+  tiles?: QTile[]; // picture strip tiles
+  items?: QCardRow[]; // card rows / shelf products
 }
 
 export interface Question {

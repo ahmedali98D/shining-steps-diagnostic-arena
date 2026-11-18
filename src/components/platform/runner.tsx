@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, ArrowRight, Check, ChevronLeft, Headphones, Timer, Volume2, X } from "lucide-react";
 import { BigButton, Card, C, Chip, Mascot, SKILL_COLORS, Spinner, api } from "./kit";
-import { SKILL_META, Skill } from "@/lib/questions/types";
+import { QVisual, SKILL_META, Skill } from "@/lib/questions/types";
 
 export interface RunnerQuestion {
   id: string;
@@ -17,7 +17,7 @@ export interface RunnerQuestion {
   type: "mcq" | "multi" | "fill" | "order" | "truefalse" | "open";
   prompt: string;
   passage?: string;
-  visual?: { kind: string; alt: string; svg: string };
+  visual?: QVisual;
   audioText?: string;
   speakerLines?: { speaker: string; line: string }[];
   options?: string[];
@@ -39,6 +39,165 @@ const SECTION_INTROS: Record<Skill, string> = {
   writing: "Choose the sentences that are built the right way.",
   speaking: "Your speaking pillar is assessed live by your teacher.",
 };
+
+// Renders every kind of UDL visual at professional quality: vector maps,
+// mazes, clocks and calendars arrive as inline SVG; scenes, picture strips,
+// menu cards and shop shelves arrive as structured data and render here as
+// responsive HTML with the illustrated assets.
+function VisualFigure({ v }: { v: QVisual }) {
+  const frame = "mb-4 overflow-hidden rounded-2xl border bg-white";
+
+  if (v.svg) {
+    return (
+      <figure className={`${frame} p-2`} style={{ borderColor: C.line }} role="img" aria-label={v.alt}>
+        <div dangerouslySetInnerHTML={{ __html: v.svg }} />
+      </figure>
+    );
+  }
+
+  if (v.kind === "scene" && v.src) {
+    return (
+      <figure className={frame} style={{ borderColor: C.line }} role="img" aria-label={v.alt}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- exam assets ship as pre-optimized webp */}
+        <img
+          src={v.src}
+          alt={v.alt}
+          className="w-full object-cover"
+          style={{ aspectRatio: v.ar ? `${v.ar}` : "16 / 9" }}
+          loading="eager"
+          decoding="async"
+        />
+      </figure>
+    );
+  }
+
+  if (v.kind === "strip" && v.tiles) {
+    return (
+      <figure className={`${frame} p-3`} style={{ borderColor: C.line }} role="img" aria-label={v.alt}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {v.tiles.map((t, i) => (
+            <div key={i} className="overflow-hidden rounded-xl border bg-white" style={{ borderColor: C.line }}>
+              {t.src ? (
+                // eslint-disable-next-line @next/next/no-img-element -- exam assets ship as pre-optimized webp
+                <img src={t.src} alt={t.label || v.alt} className="aspect-square w-full object-cover" loading="eager" decoding="async" />
+              ) : (
+                <div className="aspect-square w-full" style={{ background: "#FDF6EA" }} />
+              )}
+              {t.label && (
+                <div
+                  className="truncate px-2 py-2 text-center text-[11px] font-extrabold sm:text-xs"
+                  style={{ color: C.soft, borderTop: `1px solid ${C.line}` }}
+                >
+                  {t.label}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </figure>
+    );
+  }
+
+  if (v.kind === "card" && v.items) {
+    return (
+      <figure className={frame} style={{ borderColor: C.line }} role="img" aria-label={v.alt}>
+        <div className="flex items-center gap-2 px-5 py-3.5" style={{ background: "#15857A" }}>
+          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: "#FFD966" }} />
+          <span className="text-sm font-extrabold uppercase tracking-[0.14em] text-white">{v.title}</span>
+        </div>
+        <div className="px-5 py-3">
+          {v.items.map((it, i) =>
+            it.group ? (
+              <div key={i} className="mt-3 flex items-center gap-3 first:mt-0">
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: "#B25E02" }}>
+                  {it.group}
+                </span>
+                <span className="h-px flex-1" style={{ background: C.line }} />
+              </div>
+            ) : (
+              <div key={i} className="flex items-center gap-3 py-2.5">
+                {it.src ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- exam assets ship as pre-optimized webp
+                  <img
+                    src={it.src}
+                    alt={it.name || ""}
+                    className="h-11 w-11 shrink-0 rounded-lg border object-cover"
+                    style={{ borderColor: C.line }}
+                    loading="eager"
+                    decoding="async"
+                  />
+                ) : (
+                  <span className="h-11 w-11 shrink-0 rounded-lg border" style={{ borderColor: C.line, background: "#FDF6EA" }} />
+                )}
+                <span className="text-[15px] font-bold" style={{ color: C.ink }}>
+                  {it.name}
+                </span>
+                {it.badge && (
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold" style={{ background: "#FFEAE2", color: "#FF6A3B" }}>
+                    {it.badge}
+                  </span>
+                )}
+                <span className="mx-1 h-px flex-1 border-b border-dotted" style={{ borderColor: C.line }} />
+                <span
+                  className="rounded-full px-3 py-1 text-sm font-extrabold"
+                  style={{ background: "#E4F2EE", color: "#15857A" }}
+                >
+                  {it.price}
+                </span>
+              </div>
+            )
+          )}
+        </div>
+      </figure>
+    );
+  }
+
+  if (v.kind === "shelf" && v.items) {
+    return (
+      <figure className={`${frame} p-4`} style={{ borderColor: C.line }} role="img" aria-label={v.alt}>
+        {v.title && (
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-xs font-extrabold uppercase tracking-[0.14em]" style={{ color: "#B25E02" }}>
+              {v.title}
+            </span>
+            <span className="h-px flex-1" style={{ background: C.line }} />
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {v.items.map((it, i) => (
+            <div key={i}>
+              <div className="overflow-hidden rounded-xl border" style={{ borderColor: C.line }}>
+                {it.src ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- exam assets ship as pre-optimized webp
+                  <img src={it.src} alt={it.name || ""} className="aspect-square w-full object-cover" loading="eager" decoding="async" />
+                ) : (
+                  <div className="aspect-square w-full" style={{ background: "#FDF6EA" }} />
+                )}
+                <div
+                  className="h-2.5 w-full"
+                  style={{ background: "linear-gradient(180deg, #C89B6B, #A87848)" }}
+                />
+              </div>
+              <div
+                className="mx-auto -mt-1.5 flex w-fit items-center gap-1.5 rounded-lg border bg-white px-2.5 py-1 shadow-sm"
+                style={{ borderColor: C.line }}
+              >
+                <span className="text-[11px] font-extrabold" style={{ color: C.soft }}>
+                  {it.name}
+                </span>
+                <span className="text-xs font-extrabold" style={{ color: "#15857A" }}>
+                  {it.price}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </figure>
+    );
+  }
+
+  return null;
+}
 
 export default function Runner({ mode, onFinish, onExit }: Props) {
   const [loading, setLoading] = useState(true);
@@ -340,17 +499,8 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
             </div>
           )}
 
-          {/* UDL visual: map, maze, scene, strip, clock or card */}
-          {q.visual && (
-            <figure
-              className="mb-4 overflow-hidden rounded-2xl border bg-white p-2"
-              style={{ borderColor: C.line }}
-              role="img"
-              aria-label={q.visual.alt}
-            >
-              <div dangerouslySetInnerHTML={{ __html: q.visual.svg }} />
-            </figure>
-          )}
+          {/* UDL visual: map, maze, scene, strip, clock, calendar, card or shelf */}
+          {q.visual && <VisualFigure v={q.visual} />}
 
           {/* stimulus card: every line of the text on its own row, headers bold */}
           {(() => {

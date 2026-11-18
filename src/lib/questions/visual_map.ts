@@ -2,95 +2,117 @@
 // Every picture is checked against the exact audio/passage/options of its
 // question, so the picture supports comprehension without replacing it.
 import { Question, QVisual } from "./types";
-import { cardVisual, clockVisual, mazeVisual, sceneVisual, stripVisual, townMap } from "./visuals";
+import { clockVisual, frequencyStrip, mazeVisual, skyStars, townMap } from "./visuals";
+
+// Illustrated assets generated for the platform (WebP, served from /visuals).
+const IMG = {
+  morningSchool: "/visuals/l0-l1-morning-school.webp",
+  teacherStudent: "/visuals/l0-l3-teacher-student.webp",
+  livingRoom: "/visuals/l1-r2-living-room.webp",
+  bedroom: "/visuals/l1-l2-bedroom.webp",
+  cafeCounter: "/visuals/l3-l3-cafe-counter.webp",
+  taxiCity: "/visuals/l3-l4-taxi-city.webp",
+  hospital: "/visuals/l3-r3-hospital.webp",
+  tileApple: "/visuals/tile-apple.webp",
+  tileBook: "/visuals/tile-book.webp",
+  tileCat: "/visuals/tile-cat.webp",
+  tileEgg: "/visuals/tile-egg.webp",
+  tileStandUp: "/visuals/tile-stand-up.webp",
+  tileSitDown: "/visuals/tile-sit-down.webp",
+  tileOpenBook: "/visuals/tile-open-book.webp",
+  tileCloseDoor: "/visuals/tile-close-door.webp",
+  tileTouchEars: "/visuals/tile-touch-ears.webp",
+  tileClapHands: "/visuals/tile-clap-hands.webp",
+  tileTouchNose: "/visuals/tile-touch-nose.webp",
+  tileWakeUp: "/visuals/tile-wake-up.webp",
+  tileBreakfast: "/visuals/tile-breakfast.webp",
+  tileSchool: "/visuals/tile-school.webp",
+  tileRead: "/visuals/tile-read.webp",
+  tileSunny: "/visuals/tile-sunny.webp",
+  tileWindy: "/visuals/tile-windy.webp",
+  tileRainy: "/visuals/tile-rainy.webp",
+  tileSnowy: "/visuals/tile-snowy.webp",
+  tileCoat: "/visuals/tile-coat.webp",
+  tileBoots: "/visuals/tile-boots.webp",
+  tileSunglasses: "/visuals/tile-sunglasses.webp",
+  tileTshirt: "/visuals/tile-tshirt.webp",
+  shelfBag: "/visuals/shelf-bag.webp",
+  shelfCap: "/visuals/shelf-cap.webp",
+  shelfBook: "/visuals/shelf-book.webp",
+  shelfShirt: "/visuals/shelf-shirt.webp",
+  thumbSoup: "/visuals/thumb-soup.webp",
+  thumbSalad: "/visuals/thumb-salad.webp",
+  thumbFish: "/visuals/thumb-fish.webp",
+  thumbChickenRice: "/visuals/thumb-chicken-rice.webp",
+  thumbJuice: "/visuals/thumb-juice.webp",
+  thumbWater: "/visuals/thumb-water.webp",
+  thumbShoes: "/visuals/thumb-shoes.webp",
+  thumbSocks: "/visuals/thumb-socks.webp",
+} as const;
+
+const SCENE_AR = 1080 / 617;
+
+function scene(alt: string, src: string): QVisual {
+  return { kind: "scene", alt, src, ar: SCENE_AR };
+}
+
+function strip(alt: string, tiles: { src: string; label: string }[]): QVisual {
+  return { kind: "strip", alt, tiles };
+}
+
+function card(alt: string, title: string, items: QVisual["items"]): QVisual {
+  return { kind: "card", alt, title, items };
+}
+
+function shelf(alt: string, title: string, items: QVisual["items"]): QVisual {
+  return { kind: "shelf", alt, title, items };
+}
 
 const V: Record<string, QVisual> = {
   // ---------------- L0 ----------------
-  "L0-R-1": stripVisual(
+  "L0-R-1": strip(
     "Picture strip: an apple, a book, a cat and an egg",
     [
-      { emoji: "🍎", label: "Aa - apple" },
-      { emoji: "📖", label: "Bb - book" },
-      { emoji: "🐱", label: "Cc - cat" },
-      { emoji: "🥚", label: "Ee - egg" },
+      { src: IMG.tileApple, label: "Aa - apple" },
+      { src: IMG.tileBook, label: "Bb - book" },
+      { src: IMG.tileCat, label: "Cc - cat" },
+      { src: IMG.tileEgg, label: "Ee - egg" },
     ]
   ),
-  "L0-L-1": sceneVisual(
-    "The morning sun rising over the school", { top: "#FFF3D6", bottom: "#E4F2EE" },
-    [
-      { emoji: "☀️", label: "the morning sun", x: 200, y: 90, size: 54 },
-      { emoji: "🏫", label: "the school", x: 320, y: 190, size: 62 },
-      { emoji: "🎒", label: "", x: 470, y: 195, size: 40 },
-    ]
-  ),
-  "L0-L-2": stripVisual(
+  "L0-L-1": scene("The morning sun rising over the school", IMG.morningSchool),
+  "L0-L-2": strip(
     "Classroom command cards: stand up, sit down, open the book, close the door",
     [
-      { emoji: "🧍", label: "Stand up" },
-      { emoji: "🪑", label: "Sit down" },
-      { emoji: "📖", label: "Open the book" },
-      { emoji: "🚪", label: "Close the door" },
+      { src: IMG.tileStandUp, label: "Stand up" },
+      { src: IMG.tileSitDown, label: "Sit down" },
+      { src: IMG.tileOpenBook, label: "Open the book" },
+      { src: IMG.tileCloseDoor, label: "Close the door" },
     ]
   ),
-  "L0-L-3": sceneVisual(
-    "A teacher and a young student talking", { top: "#EFE9F7", bottom: "#FDF6EA" },
-    [
-      { emoji: "👩‍🏫", label: "Teacher", x: 180, y: 150, size: 56 },
-      { emoji: "🧒", label: "Adam", x: 460, y: 150, size: 56 },
-    ]
-  ),
-  "L0-L-4": stripVisual(
+  "L0-L-3": scene("A teacher and a young student talking", IMG.teacherStudent),
+  "L0-L-4": strip(
     "Command cards: touch your ears, clap your hands, touch your nose, stand up",
     [
-      { emoji: "👂", label: "Touch your ears" },
-      { emoji: "👏", label: "Clap your hands" },
-      { emoji: "👃", label: "Touch your nose" },
-      { emoji: "🧍", label: "Stand up" },
+      { src: IMG.tileTouchEars, label: "Touch your ears" },
+      { src: IMG.tileClapHands, label: "Clap your hands" },
+      { src: IMG.tileTouchNose, label: "Touch your nose" },
+      { src: IMG.tileStandUp, label: "Stand up" },
     ]
   ),
-  "L0-L-5": sceneVisual(
-    "A night sky with twelve stars", { top: "#31406E", bottom: "#31406E" },
-    [
-      { emoji: "⭐", x: 120, y: 100 }, { emoji: "⭐", x: 260, y: 100 }, { emoji: "⭐", x: 400, y: 100 }, { emoji: "⭐", x: 540, y: 100 },
-      { emoji: "⭐", x: 120, y: 175 }, { emoji: "⭐", x: 260, y: 175 }, { emoji: "⭐", x: 400, y: 175 }, { emoji: "⭐", x: 540, y: 175 },
-      { emoji: "⭐", x: 120, y: 250 }, { emoji: "⭐", x: 260, y: 250 }, { emoji: "⭐", x: 400, y: 250 }, { emoji: "⭐", x: 540, y: 250 },
-    ]
-  ),
+  "L0-L-5": skyStars("A night sky with twelve stars"),
 
   // ---------------- L1 ----------------
-  "L1-R-1": stripVisual(
+  "L1-R-1": strip(
     "Mia's day: waking up, breakfast, school, evening reading",
     [
-      { emoji: "🌅", label: "gets up - six thirty" },
-      { emoji: "🥣", label: "breakfast - seven" },
-      { emoji: "🎒", label: "school - eight" },
-      { emoji: "📖", label: "reads - evening" },
+      { src: IMG.tileWakeUp, label: "Gets up - six thirty" },
+      { src: IMG.tileBreakfast, label: "Breakfast - seven" },
+      { src: IMG.tileSchool, label: "School - eight" },
+      { src: IMG.tileRead, label: "Reads - evening" },
     ]
   ),
-  "L1-R-2": sceneVisual(
-    "Leo's living room with a sofa, a door and a bright window", { top: "#E4F2EE", bottom: "#FDF6EA" },
-    [
-      { emoji: "🪟", label: "the window", x: 480, y: 110, size: 44 },
-      { emoji: "🛋️", label: "the sofa", x: 300, y: 210, size: 62 },
-      { emoji: "🐱", x: 300, y: 178, size: 30 },
-      { emoji: "🚪", label: "the door", x: 110, y: 190, size: 46 },
-    ]
-  ),
-  "L1-L-2": sceneVisual(
-    "A bedroom with two beds, a table with a ball under it, a chair and a door", { top: "#EFE9F7", bottom: "#FDF6EA" },
-    [
-      { emoji: "🛏️", label: "the beds", x: 80, y: 205, size: 44 },
-      { emoji: "🛏️", x: 160, y: 205, size: 44 },
-      { emoji: "🚪", label: "the door", x: 575, y: 195, size: 46 },
-      { emoji: "🪑", label: "the chair", x: 455, y: 195, size: 42 },
-      { emoji: "⚽", x: 330, y: 252, size: 32 },
-    ],
-    330,
-    `<rect x="270" y="200" width="130" height="12" rx="4" fill="#B08968"/>`
-    + `<rect x="278" y="212" width="10" height="46" fill="#B08968"/>`
-    + `<rect x="382" y="212" width="10" height="46" fill="#B08968"/>`
-    + `<text x="335" y="196" text-anchor="middle" font-size="13" font-weight="700" fill="#8A7B63" font-family="'Baloo 2','Segoe UI',sans-serif">the table</text>`
-  ),
+  "L1-R-2": scene("Leo's living room with a sofa, a cat, a door and a bright window", IMG.livingRoom),
+  "L1-L-2": scene("A bedroom with two beds, a table with a ball under it, a chair and a door", IMG.bedroom),
   "L1-L-5": clockVisual(
     "A classroom wall clock - the short hand points to three, the long hand points to twelve", 3, 0
   ),
@@ -100,144 +122,127 @@ const V: Record<string, QVisual> = {
     "A small town map with a start house, a park, a school, a cafe and a bank",
     [[295, 150, 50, 40], [0, 148, 640, 44]],
     [
-      { emoji: "🏫", label: "School", x: 40, y: 40, w: 180, h: 85 },
-      { emoji: "🌳", label: "Park", x: 400, y: 40, w: 180, h: 85 },
-      { emoji: "🏠", label: "START", x: 285, y: 215, w: 110, h: 70 },
-      { emoji: "☕", label: "Cafe", x: 40, y: 215, w: 180, h: 70 },
-      { emoji: "🏦", label: "Bank", x: 400, y: 215, w: 180, h: 70 },
+      { type: "school", label: "School", x: 40, y: 40, w: 180, h: 85 },
+      { type: "park", label: "Park", x: 400, y: 40, w: 180, h: 85 },
+      { type: "house", label: "START", x: 285, y: 215, w: 110, h: 70, start: true },
+      { type: "cafe", label: "Cafe", x: 40, y: 215, w: 180, h: 70 },
+      { type: "bank", label: "Bank", x: 400, y: 215, w: 180, h: 70 },
     ]
   ),
-  "L2-R-2": cardVisual(
+  "L2-R-2": card(
     "A shop price tag: shoes twenty-five dollars, sale socks three dollars",
-    "🏷️ SHOP TAG", [{ head: "SHOES", text: "$25" }, { head: "SALE", text: "socks - $3" }]
+    "SHOP TAG",
+    [
+      { name: "Shoes", price: "$25", src: IMG.thumbShoes },
+      { name: "Socks", price: "$3", src: IMG.thumbSocks, badge: "SALE" },
+    ]
   ),
   "L2-L-1": townMap(
     "A town map with a school, a park next to a bank, and a cafe",
     [[0, 148, 640, 44]],
     [
-      { emoji: "🏫", label: "School", x: 60, y: 40, w: 180, h: 85 },
-      { emoji: "🌳", label: "Park", x: 400, y: 40, w: 180, h: 85 },
-      { emoji: "🏦", label: "Bank", x: 400, y: 215, w: 180, h: 70 },
-      { emoji: "☕", label: "Cafe", x: 60, y: 215, w: 180, h: 70 },
+      { type: "school", label: "School", x: 60, y: 40, w: 180, h: 85 },
+      { type: "park", label: "Park", x: 400, y: 40, w: 180, h: 85 },
+      { type: "bank", label: "Bank", x: 400, y: 215, w: 180, h: 70 },
+      { type: "cafe", label: "Cafe", x: 60, y: 215, w: 180, h: 70 },
     ]
   ),
   "L2-L-2": townMap(
     "A town map with a start house, a park, a school and a cafe",
     [[295, 150, 50, 40], [0, 148, 640, 44]],
     [
-      { emoji: "🏫", label: "School", x: 40, y: 40, w: 180, h: 85 },
-      { emoji: "🌳", label: "Park", x: 400, y: 40, w: 180, h: 85 },
-      { emoji: "🏠", label: "START", x: 285, y: 215, w: 110, h: 70 },
-      { emoji: "☕", label: "Cafe", x: 400, y: 215, w: 180, h: 70 },
+      { type: "school", label: "School", x: 40, y: 40, w: 180, h: 85 },
+      { type: "park", label: "Park", x: 400, y: 40, w: 180, h: 85 },
+      { type: "house", label: "START", x: 285, y: 215, w: 110, h: 70, start: true },
+      { type: "cafe", label: "Cafe", x: 400, y: 215, w: 180, h: 70 },
     ]
   ),
-  "L2-L-3": stripVisual(
+  "L2-L-3": strip(
     "Weather pictures: sunny, windy, rainy, snowy",
     [
-      { emoji: "☀️", label: "sunny" },
-      { emoji: "🌬️", label: "windy" },
-      { emoji: "🌧️", label: "rainy" },
-      { emoji: "❄️", label: "snowy" },
+      { src: IMG.tileSunny, label: "Sunny" },
+      { src: IMG.tileWindy, label: "Windy" },
+      { src: IMG.tileRainy, label: "Rainy" },
+      { src: IMG.tileSnowy, label: "Snowy" },
     ]
   ),
-  "L2-L-4": sceneVisual(
-    "A shop shelf with a bag, a cap, a book and a shirt, each with a price tag", { top: "#FFF3D6", bottom: "#FDF6EA" },
+  "L2-L-4": shelf(
+    "A shop shelf with a bag, a cap, a book and a shirt, each with a price tag",
+    "TODAY'S PRICES",
     [
-      { emoji: "🛍️", label: "bag - $12", x: 130, y: 170, size: 48 },
-      { emoji: "🧢", label: "cap - $20", x: 270, y: 170, size: 48 },
-      { emoji: "📖", label: "book - $2", x: 410, y: 170, size: 48 },
-      { emoji: "👕", label: "shirt - $30", x: 550, y: 170, size: 48 },
+      { name: "Bag", price: "$12", src: IMG.shelfBag },
+      { name: "Cap", price: "$20", src: IMG.shelfCap },
+      { name: "Book", price: "$2", src: IMG.shelfBook },
+      { name: "Shirt", price: "$30", src: IMG.shelfShirt },
     ]
   ),
   "L2-L-5": townMap(
     "A town map with a start house, a park, a library, a school, a cafe and a station",
     [[0, 148, 640, 44]],
     [
-      { emoji: "🌳", label: "Park", x: 50, y: 40, w: 150, h: 85 },
-      { emoji: "📚", label: "Library", x: 245, y: 40, w: 150, h: 85 },
-      { emoji: "🏫", label: "School", x: 440, y: 40, w: 150, h: 85 },
-      { emoji: "🏠", label: "START", x: 50, y: 215, w: 150, h: 70 },
-      { emoji: "☕", label: "Cafe", x: 245, y: 215, w: 150, h: 70 },
-      { emoji: "🚉", label: "Station", x: 440, y: 215, w: 150, h: 70 },
+      { type: "park", label: "Park", x: 50, y: 40, w: 150, h: 85 },
+      { type: "library", label: "Library", x: 245, y: 40, w: 150, h: 85 },
+      { type: "school", label: "School", x: 440, y: 40, w: 150, h: 85 },
+      { type: "house", label: "START", x: 50, y: 215, w: 150, h: 70, start: true },
+      { type: "cafe", label: "Cafe", x: 245, y: 215, w: 150, h: 70 },
+      { type: "station", label: "Station", x: 440, y: 215, w: 150, h: 70 },
     ]
   ),
-  "L2-L-6": stripVisual(
+  "L2-L-6": strip(
     "Clothes pictures: a coat, boots, sunglasses and a T-shirt",
     [
-      { emoji: "🧥", label: "a coat" },
-      { emoji: "🥾", label: "boots" },
-      { emoji: "🕶️", label: "sunglasses" },
-      { emoji: "👕", label: "a T-shirt" },
-    ],
-    210
+      { src: IMG.tileCoat, label: "A coat" },
+      { src: IMG.tileBoots, label: "Boots" },
+      { src: IMG.tileSunglasses, label: "Sunglasses" },
+      { src: IMG.tileTshirt, label: "A T-shirt" },
+    ]
   ),
 
   // ---------------- L3 ----------------
-  "L3-L-1": stripVisual(
-    "Frequency cards: once a week, twice a week, every day, never",
-    [
-      { emoji: "1️⃣", label: "once a week" },
-      { emoji: "2️⃣", label: "twice a week" },
-      { emoji: "🔁", label: "every day" },
-      { emoji: "🚫", label: "never" },
-    ]
+  "L3-L-1": frequencyStrip(
+    "Frequency cards: once a week, twice a week, every day, never"
   ),
   "L3-L-2": townMap(
     "A town street with a start house, a cafe, a bank, a school opposite the bank and a station",
     [[370, 0, 40, 330], [0, 215, 640, 44]],
     [
-      { emoji: "🏠", label: "START", x: 30, y: 120, w: 110, h: 70 },
-      { emoji: "☕", label: "Cafe", x: 160, y: 120, w: 150, h: 70 },
-      { emoji: "🏦", label: "Bank", x: 430, y: 120, w: 150, h: 70 },
-      { emoji: "🏫", label: "School", x: 430, y: 272, w: 150, h: 52 },
-      { emoji: "🚉", label: "Station", x: 160, y: 272, w: 150, h: 52 },
+      { type: "house", label: "START", x: 30, y: 120, w: 110, h: 70, start: true },
+      { type: "cafe", label: "Cafe", x: 160, y: 120, w: 150, h: 70 },
+      { type: "bank", label: "Bank", x: 430, y: 120, w: 150, h: 70 },
+      { type: "school", label: "School", x: 430, y: 266, w: 150, h: 58 },
+      { type: "station", label: "Station", x: 160, y: 266, w: 150, h: 58 },
     ]
   ),
-  "L3-L-3": sceneVisual(
-    "A cafe counter with a sandwich, fish, a green salad, an orange juice, a coffee and water", { top: "#FFF3D6", bottom: "#FDF6EA" },
-    [
-      { emoji: "🥪", label: "sandwich", x: 110, y: 140, size: 44 },
-      { emoji: "🐟", label: "fish", x: 240, y: 140, size: 44 },
-      { emoji: "🥗", label: "green salad", x: 380, y: 140, size: 44 },
-      { emoji: "🧃", label: "orange juice", x: 520, y: 140, size: 44 },
-      { emoji: "☕", label: "coffee", x: 180, y: 255, size: 44 },
-      { emoji: "💧", label: "water", x: 340, y: 255, size: 44 },
-    ]
+  "L3-L-3": scene(
+    "A cafe counter with a sandwich, fish, a green salad, an orange juice, a coffee and water",
+    IMG.cafeCounter
   ),
-  "L3-L-4": sceneVisual(
-    "Karim the taxi driver in the morning city", { top: "#FFF3D6", bottom: "#EDE4D2" },
-    [
-      { emoji: "🌅", label: "the morning sky", x: 160, y: 100, size: 50 },
-      { emoji: "🏙️", label: "the city", x: 460, y: 110, size: 54 },
-      { emoji: "🚕", label: "Karim's taxi", x: 320, y: 230, size: 60 },
-    ]
-  ),
+  "L3-L-4": scene("Karim the taxi driver in the morning city", IMG.taxiCity),
   "L3-L-5": mazeVisual(
     "A maze with four lettered rooms: A the art room, B the library, C the gym, D the music room",
     [
-      { letter: "A", emoji: "🎨", label: "the art room", x: 60, y: 80 },
-      { letter: "B", emoji: "📚", label: "the library", x: 430, y: 80 },
-      { letter: "C", emoji: "🏀", label: "the gym", x: 60, y: 175 },
-      { letter: "D", emoji: "🎵", label: "the music room", x: 430, y: 175 },
+      { letter: "A", glyph: "palette", label: "the art room", x: 60, y: 80 },
+      { letter: "B", glyph: "book", label: "the library", x: 430, y: 80 },
+      { letter: "C", glyph: "ball", label: "the gym", x: 60, y: 175 },
+      { letter: "D", glyph: "note", label: "the music room", x: 430, y: 175 },
     ]
   ),
-  "L3-R-2": cardVisual(
+  "L3-R-2": card(
     "A cafe menu with starters, main food and drinks and their prices",
-    "📋 CAFE MENU",
+    "CAFE MENU",
     [
-      { head: "STARTERS", text: "tomato soup $4 - green salad $5" },
-      { head: "MAIN FOOD", text: "grilled fish $12 - chicken rice $11" },
-      { head: "DRINKS", text: "orange juice $3 - water $1" },
+      { group: "STARTERS" },
+      { name: "Tomato soup", price: "$4", src: IMG.thumbSoup },
+      { name: "Green salad", price: "$5", src: IMG.thumbSalad },
+      { group: "MAIN FOOD" },
+      { name: "Grilled fish", price: "$12", src: IMG.thumbFish },
+      { name: "Chicken rice", price: "$11", src: IMG.thumbChickenRice },
+      { group: "DRINKS" },
+      { name: "Orange juice", price: "$3", src: IMG.thumbJuice },
+      { name: "Water", price: "$1", src: IMG.thumbWater },
     ]
   ),
-  "L3-R-3": sceneVisual(
-    "Amina the nurse at the city hospital", { top: "#E4F2EE", bottom: "#FDF6EA" },
-    [
-      { emoji: "🏥", label: "the city hospital", x: 320, y: 120, size: 66 },
-      { emoji: "👩‍⚕️", label: "Amina the nurse", x: 140, y: 230, size: 52 },
-      { emoji: "🩺", x: 500, y: 230, size: 44 },
-    ]
-  ),
+  "L3-R-3": scene("Amina the nurse at the city hospital", IMG.hospital),
 };
 
 // New multimodal items: audio + picture together (UDL Representation).
