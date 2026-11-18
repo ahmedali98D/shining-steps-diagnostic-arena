@@ -211,8 +211,7 @@ const book: LevelBook = {
       topic: "Past passive", type: "fill",
       prompt: "Complete with the past passive: 'The old bridge ___ (build) in 1890.'",
       answer: "was built",
-      accepted: ["was built", "Was built", "WAS BUILT", " was built", "was  built"],
-      explain: "The past passive is was/were + past participle: 'The old bridge was built in 1890.' Lesson 3 dates real things with the past passive.",
+            explain: "The past passive is was/were + past participle: 'The old bridge was built in 1890.' Lesson 3 dates real things with the past passive.",
       bloom: "Apply", dok: 2, solo: "Multistructural", marzano: "Retrieval", ubd: "Apply", udl: "Action and Expression", diff: 2,
     },
     {

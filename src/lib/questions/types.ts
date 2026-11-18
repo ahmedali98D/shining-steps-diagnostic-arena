@@ -38,7 +38,7 @@ export interface QCardRow {
 }
 
 export interface QVisual {
-  kind: "map" | "maze" | "scene" | "strip" | "clock" | "card" | "shelf" | "sky";
+  kind: "map" | "maze" | "scene" | "strip" | "clock" | "card" | "shelf" | "sky" | "chart";
   alt: string;
   svg?: string;
   src?: string; // scene image

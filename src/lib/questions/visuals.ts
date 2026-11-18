@@ -259,25 +259,28 @@ function crosswalk(cx: number, y: number, h: number): string {
 
 export interface MapBlockSpec { type: keyof typeof BUILDERS; label: string; x: number; y: number; w: number; h: number; start?: boolean }
 
-export function townMap(alt: string, streets: [number, number, number, number][], blocks: MapBlockSpec[]): QVisual {
+export function townMap(alt: string, streets: [number, number, number, number][], blocks: MapBlockSpec[], city?: string): QVisual {
   const H = 330;
   const art = blocks.map((b) => {
     const draw = BUILDERS[b.type] ?? drawHouse;
     const labelCy = b.y + b.h - 10;
-    const labelOpts = b.start ? { fill: TEAL, color: "#FFFFFF" } : { fill: "#FFFFFF", color: SOFT };
-    return draw(b) + chip(b.x + b.w / 2, labelCy, b.label, labelOpts);
+    const labelOpts = b.start ? { fill: CORAL, color: "#FFFFFF", fs: 11 } : { fill: "#FFFFFF", color: SOFT };
+    const labelText = b.start ? "YOU ARE HERE" : b.label;
+    return draw(b) + chip(b.x + b.w / 2, labelCy, labelText, labelOpts);
   }).join("");
   const pin = (() => {
     const start = blocks.find((b) => b.start);
     if (!start) return "";
     const px = start.x + start.w / 2;
-    const py = start.y + 6;
+    const py = start.y + 2;
     return `<g>`
-      + `<path d="M ${px - 4.5} ${py - 10.5} L ${px} ${py} L ${px + 4.5} ${py - 10.5} Z" fill="${CORAL}" stroke="#D6532A" stroke-width="1"/>`
-      + `<circle cx="${px}" cy="${py - 16}" r="8" fill="${CORAL}" stroke="#D6532A" stroke-width="1"/>`
-      + `<circle cx="${px}" cy="${py - 16}" r="3.2" fill="#FFFFFF"/>`
+      + `<circle cx="${px}" cy="${py - 30}" r="17" fill="${CORAL}" opacity="0.16"/>`
+      + `<path d="M ${px - 7} ${py - 14} L ${px} ${py + 2} L ${px + 7} ${py - 14} Z" fill="${CORAL}" stroke="#C44A22" stroke-width="1.4"/>`
+      + `<circle cx="${px}" cy="${py - 24}" r="11" fill="${CORAL}" stroke="#C44A22" stroke-width="1.4"/>`
+      + `<circle cx="${px}" cy="${py - 24}" r="4.4" fill="#FFFFFF"/>`
       + `</g>`;
   })();
+  const cityTag = city ? chip(64, 30, city.toUpperCase(), { fill: TEAL, color: "#FFFFFF", fs: 11 }) : "";
   const compass = `<g transform="translate(604 24)">`
     + `<circle r="14" fill="#FFFFFF" stroke="${LINE}" stroke-width="1.5"/>`
     + `<text y="-1.5" text-anchor="middle" ${FONT} font-size="8.5" font-weight="800" fill="${TEAL}">N</text>`
@@ -291,7 +294,8 @@ export function townMap(alt: string, streets: [number, number, number, number][]
     + cornerTrees
     + art
     + pin
-    + compass;
+    + compass
+    + cityTag;
   return { kind: "map", alt, svg: frame(H, inner) };
 }
 
@@ -366,7 +370,7 @@ export function mazeVisual(
     + `<line x1="317" y1="299.5" x2="317" y2="306" stroke="#8C4237" stroke-width="0"/>`
     + `</g>`;
   const startMat = `<g>`
-    + `<rect x="295" y="32" width="70" height="26" rx="13" fill="${TEAL}"/>`
+    + `<rect x="295" y="32" width="70" height="26" rx="13" fill="${CORAL}"/>`
     + `<text x="330" y="49.5" text-anchor="middle" ${FONT} font-size="13.5" font-weight="800" fill="#FFFFFF" letter-spacing="1">START</text>`
     + `</g>`;
   const roomArt = rooms.map((r) => {
@@ -530,3 +534,249 @@ export function frequencyStrip(alt: string): QVisual {
   ].join("");
   return { kind: "strip", alt, svg: frame(H, tiles) };
 }
+
+// ------------------------------------------------------------ data graphics
+// Exact-in-code charts and diagrams for the upper-level writing tasks. Every
+// number in the data arrays is the number the student must describe, so the
+// geometry is computed from the data, never hand-drawn.
+
+const BLUE = "#2E7BB5";
+const AMBER = "#E8A200";
+const VIOLET = "#6B4FA0";
+
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function chartFrame(h: number, title: string, subtitle: string, inner: string, legend?: string): string {
+  const head = `<text x="320" y="34" text-anchor="middle" ${FONT} font-size="17" font-weight="800" fill="${INK}">${esc(title)}</text>`
+    + (subtitle ? `<text x="320" y="52" text-anchor="middle" ${FONT} font-size="11.5" font-weight="700" fill="${SOFT}">${esc(subtitle)}</text>` : "");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 ${h}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">`
+    + `<rect x="1" y="1" width="638" height="${h - 2}" rx="18" fill="${PAPER}" stroke="${LINE}" stroke-width="2"/>`
+    + head
+    + (legend || "")
+    + inner
+    + `</svg>`;
+}
+
+function niceMax(v: number): number {
+  const steps = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 120, 150, 200, 250, 300, 400, 500, 600, 800, 1000];
+  for (const s of steps) if (v <= s) return s;
+  return Math.ceil(v / 500) * 500;
+}
+
+export interface BarSpec { label: string; value: number }
+
+export function barChart(alt: string, title: string, subtitle: string, bars: BarSpec[], color = TEAL, yMaxHint?: number): QVisual {
+  const H = 400;
+  const top = 84;
+  const bottom = 330;
+  const left = 78;
+  const right = 596;
+  const maxVal = Math.max(...bars.map((b) => b.value));
+  const yMax = niceMax(yMaxHint ?? maxVal * 1.12);
+  const plotW = right - left;
+  const slot = plotW / bars.length;
+  const bw = Math.min(slot * 0.52, 84);
+  const grid: string[] = [];
+  for (let i = 0; i <= 4; i++) {
+    const v = (yMax * i) / 4;
+    const y = bottom - ((bottom - top) * i) / 4;
+    grid.push(`<line x1="${left}" y1="${y.toFixed(1)}" x2="${right}" y2="${y.toFixed(1)}" stroke="${i === 0 ? INK : LINE}" stroke-width="${i === 0 ? 2 : 1.4}"/>`
+      + `<text x="${left - 10}" y="${(y + 4).toFixed(1)}" text-anchor="end" ${FONT} font-size="11.5" font-weight="700" fill="${SOFT}">${v % 1 === 0 ? v : v.toFixed(1)}</text>`);
+  }
+  const colArt = bars.map((b, i) => {
+    const hVal = ((bottom - top) * b.value) / yMax;
+    const x = left + slot * i + (slot - bw) / 2;
+    const y = bottom - hVal;
+    const cx = x + bw / 2;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${hVal.toFixed(1)}" rx="7" fill="${color}" opacity="${0.92}"/>`
+      + `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="7" rx="3.5" fill="#FFFFFF" opacity="0.35"/>`
+      + `<text x="${cx.toFixed(1)}" y="${(y - 9).toFixed(1)}" text-anchor="middle" ${FONT} font-size="13" font-weight="800" fill="${INK}">${b.value}</text>`
+      + `<text x="${cx.toFixed(1)}" y="${(bottom + 20).toFixed(1)}" text-anchor="middle" ${FONT} font-size="12" font-weight="800" fill="${INK}">${esc(b.label)}</text>`;
+  }).join("");
+  const inner = grid.join("") + colArt;
+  return { kind: "chart", alt, svg: chartFrame(H, title, subtitle, inner) };
+}
+
+export interface LineSeriesSpec { name: string; color: string; points: number[] }
+
+export function lineChart(
+  alt: string, title: string, subtitle: string, xLabels: string[], series: LineSeriesSpec[], yMaxHint?: number, unit = ""
+): QVisual {
+  const H = 420;
+  const top = 92;
+  const bottom = 342;
+  const left = 78;
+  const right = 592;
+  const maxVal = Math.max(...series.flatMap((s) => s.points));
+  const yMax = niceMax(yMaxHint ?? maxVal * 1.1);
+  const plotW = right - left;
+  const step = plotW / Math.max(1, xLabels.length - 1);
+  const py = (v: number) => bottom - ((bottom - top) * v) / yMax;
+  const px = (i: number) => left + step * i;
+  const grid: string[] = [];
+  for (let i = 0; i <= 4; i++) {
+    const v = (yMax * i) / 4;
+    const y = py(v);
+    grid.push(`<line x1="${left}" y1="${y.toFixed(1)}" x2="${right}" y2="${y.toFixed(1)}" stroke="${i === 0 ? INK : LINE}" stroke-width="${i === 0 ? 2 : 1.4}"/>`
+      + `<text x="${left - 10}" y="${(y + 4).toFixed(1)}" text-anchor="end" ${FONT} font-size="11.5" font-weight="700" fill="${SOFT}">${v % 1 === 0 ? v : v.toFixed(1)}</text>`);
+  }
+  const xLabelsArt = xLabels.map((l, i) =>
+    `<text x="${px(i).toFixed(1)}" y="${(bottom + 22).toFixed(1)}" text-anchor="middle" ${FONT} font-size="12" font-weight="800" fill="${INK}">${esc(l)}</text>`
+  ).join("");
+  const seriesArt = series.map((s) => {
+    const pts = s.points.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`);
+    const dots = s.points.map((v, i) =>
+      `<circle cx="${px(i).toFixed(1)}" cy="${py(v).toFixed(1)}" r="5" fill="#FFFFFF" stroke="${s.color}" stroke-width="3"/>`
+      + `<text x="${px(i).toFixed(1)}" y="${(py(v) - 11).toFixed(1)}" text-anchor="middle" ${FONT} font-size="11.5" font-weight="800" fill="${s.color}">${v}${unit}</text>`
+    ).join("");
+    return `<polyline points="${pts.join(" ")}" fill="none" stroke="${s.color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>` + dots;
+  }).join("");
+  const legend = series.map((s, i) => {
+    const lx = 592 - series.slice(0, i + 1).reduce((a, t) => a + t.name.length * 8 + 46, 0);
+    return `<g transform="translate(${lx} 62)">`
+      + `<line x1="0" y1="6" x2="24" y2="6" stroke="${s.color}" stroke-width="3.5" stroke-linecap="round"/>`
+      + `<circle cx="12" cy="6" r="4.5" fill="#FFFFFF" stroke="${s.color}" stroke-width="2.6"/>`
+      + `<text x="32" y="10.5" ${FONT} font-size="12.5" font-weight="800" fill="${INK}">${esc(s.name)}</text>`
+      + `</g>`;
+  }).join("");
+  return { kind: "chart", alt, svg: chartFrame(H, title, subtitle, grid.join("") + xLabelsArt + seriesArt, legend) };
+}
+
+export interface PieSliceSpec { label: string; pct: number; color: string }
+
+export function pieChart(alt: string, title: string, subtitle: string, slices: PieSliceSpec[]): QVisual {
+  const H = 400;
+  const cx = 205;
+  const cy = 226;
+  const R = 118;
+  let acc = -90;
+  const sliceArt = slices.map((s) => {
+    const a0 = (acc * Math.PI) / 180;
+    acc += (s.pct / 100) * 360;
+    const a1 = (acc * Math.PI) / 180;
+    const large = a1 - a0 > Math.PI ? 1 : 0;
+    const x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
+    const x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
+    const mid = (a0 + a1) / 2;
+    const lx = cx + (R + 22) * Math.cos(mid), ly = cy + (R + 22) * Math.sin(mid);
+    const pctLabel = `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" ${FONT} font-size="12.5" font-weight="800" fill="${INK}">${s.pct}%</text>`;
+    return `<path d="M ${cx} ${cy} L ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" fill="${s.color}" stroke="${PAPER}" stroke-width="3"/>`
+      + pctLabel;
+  }).join("");
+  const hole = `<circle cx="${cx}" cy="${cy}" r="52" fill="${PAPER}" stroke="${LINE}" stroke-width="1.5"/>`
+    + `<text x="${cx}" y="${cy - 4}" text-anchor="middle" ${FONT} font-size="13" font-weight="800" fill="${SOFT}">class</text>`
+    + `<text x="${cx}" y="${cy + 14}" text-anchor="middle" ${FONT} font-size="13" font-weight="800" fill="${SOFT}">total</text>`;
+  const legend = slices.map((s, i) => {
+    const y = 140 + i * 44;
+    return `<g transform="translate(392 ${y})">`
+      + `<rect x="0" y="0" width="228" height="34" rx="10" fill="#FFFFFF" stroke="${LINE}" stroke-width="1.5"/>`
+      + `<rect x="10" y="9" width="16" height="16" rx="5" fill="${s.color}"/>`
+      + `<text x="36" y="22.5" ${FONT} font-size="13" font-weight="800" fill="${INK}">${esc(s.label)}</text>`
+      + `<text x="216" y="22.5" text-anchor="end" ${FONT} font-size="13" font-weight="800" fill="${SOFT}">${s.pct}%</text>`
+      + `</g>`;
+  }).join("");
+  return { kind: "chart", alt, svg: chartFrame(H, title, subtitle, sliceArt + hole + legend) };
+}
+
+export interface ProcessStepSpec { label: string; sub?: string }
+
+export function processDiagram(alt: string, title: string, subtitle: string, steps: ProcessStepSpec[]): QVisual {
+  const H = 300;
+  const n = steps.length;
+  const gap = 30;
+  const boxW = Math.min((588 - (n - 1) * gap) / n, 150);
+  const totalW = n * boxW + (n - 1) * gap;
+  const x0 = 320 - totalW / 2;
+  const y = 118;
+  const boxH = 104;
+  const rows: string[] = [];
+  steps.forEach((s, i) => {
+    const x = x0 + i * (boxW + gap);
+    rows.push(`<rect x="${x.toFixed(1)}" y="${y}" width="${boxW.toFixed(1)}" height="${boxH}" rx="14" fill="#FFFFFF" stroke="${WOOD}" stroke-width="2.5"/>`
+      + `<rect x="${x.toFixed(1)}" y="${y}" width="${boxW.toFixed(1)}" height="30" rx="14" fill="${i % 2 ? CORAL : TEAL}"/>`
+      + `<rect x="${x.toFixed(1)}" y="${y + 16}" width="${boxW.toFixed(1)}" height="14" fill="${i % 2 ? CORAL : TEAL}"/>`
+      + `<text x="${(x + boxW / 2).toFixed(1)}" y="${y + 21}" text-anchor="middle" ${FONT} font-size="13" font-weight="800" fill="#FFFFFF">${i + 1}</text>`);
+    const words = s.label.split(" ");
+    const line1: string[] = [];
+    const line2: string[] = [];
+    let tgt = line1;
+    for (const w of words) {
+      if (([...line1, ...line2].join(" ") + " " + w).length > 15 && line1.length > 0 && line2.length === 0) tgt = line2;
+      tgt.push(w);
+    }
+    rows.push(`<text x="${(x + boxW / 2).toFixed(1)}" y="${y + 54}" text-anchor="middle" ${FONT} font-size="13.5" font-weight="800" fill="${INK}">${esc(line1.join(" "))}</text>`);
+    if (line2.length > 0) rows.push(`<text x="${(x + boxW / 2).toFixed(1)}" y="${y + 72}" text-anchor="middle" ${FONT} font-size="13.5" font-weight="800" fill="${INK}">${esc(line2.join(" "))}</text>`);
+    if (s.sub) rows.push(`<text x="${(x + boxW / 2).toFixed(1)}" y="${y + 92}" text-anchor="middle" ${FONT} font-size="11" font-weight="700" fill="${SOFT}">${esc(s.sub)}</text>`);
+    if (i < n - 1) {
+      const ax = x + boxW + 4;
+      const ay = y + boxH / 2;
+      rows.push(`<line x1="${ax}" y1="${ay}" x2="${ax + gap - 10}" y2="${ay}" stroke="${SOFT}" stroke-width="3" stroke-linecap="round"/>`
+        + `<path d="M ${ax + gap - 12} ${ay - 6} L ${ax + gap} ${ay} L ${ax + gap - 12} ${ay + 6} Z" fill="${SOFT}"/>`);
+    }
+  });
+  return { kind: "chart", alt, svg: chartFrame(H, title, subtitle, rows.join("")) };
+}
+
+export function tableVisual(alt: string, title: string, subtitle: string, headers: string[], rows: string[][], widths?: number[]): QVisual {
+  const H = 120 + rows.length * 42 + (subtitle ? 14 : 0);
+  const x = 40;
+  const w = 560;
+  const top = 92;
+  const colWs = widths && widths.length === headers.length ? widths : headers.map(() => 1);
+  const sum = colWs.reduce((a, b) => a + b, 0);
+  const colX: number[] = [];
+  let accX = x;
+  for (const cw of colWs) {
+    colX.push(accX);
+    accX += (cw / sum) * w;
+  }
+  const headerArt = headers.map((hd, i) =>
+    `<text x="${(colX[i] + 14).toFixed(1)}" y="${top + 24}" ${FONT} font-size="13.5" font-weight="800" fill="#FFFFFF">${esc(hd)}</text>`
+    + (i > 0 ? `<line x1="${colX[i].toFixed(1)}" y1="${top + 6}" x2="${colX[i].toFixed(1)}" y2="${top + 34}" stroke="#FFFFFF" stroke-width="1" opacity="0.4"/>` : "")
+  ).join("");
+  const rowArt = rows.map((r, ri) => {
+    const y = top + 40 + ri * 42;
+    const bg = ri % 2 ? "#FBF3E4" : "#FFFFFF";
+    const cells = r.map((c, ci) =>
+      `<text x="${(colX[ci] + 14).toFixed(1)}" y="${y + 26}" ${FONT} font-size="14" font-weight="${ci === 0 ? 800 : 700}" fill="${ci === 0 ? INK : "#5A5140"}">${esc(c)}</text>`
+    ).join("");
+    return `<rect x="${x}" y="${y}" width="${w}" height="42" rx="10" fill="${bg}" stroke="${LINE}" stroke-width="1.4"/>` + cells;
+  }).join("");
+  return { kind: "chart", alt, svg: chartFrame(H, title, subtitle, `<rect x="${x}" y="${top}" width="${w}" height="40" rx="10" fill="${TEAL}"/>` + headerArt + rowArt) };
+}
+
+/** Two small town panels side by side (before / after) for IELTS-style map tasks. */
+export function dualMap(
+  alt: string, title: string, subtitle: string, labelA: string, labelB: string,
+  streets: [number, number, number, number][], blocksA: MapBlockSpec[], blocksB: MapBlockSpec[]
+): QVisual {
+  const H = 420;
+  const s = 0.472;
+  const panel = (blocks: MapBlockSpec[], ox: number, oy: number, label: string) => {
+    const art = blocks.map((b) => {
+      const draw = BUILDERS[b.type] ?? drawHouse;
+      const labelCy = b.y + b.h - 10;
+      const labelOpts = b.start ? { fill: CORAL, color: "#FFFFFF", fs: 11 } : { fill: "#FFFFFF", color: SOFT };
+      const labelText = b.start ? "YOU ARE HERE" : b.label;
+      return draw(b) + chip(b.x + b.w / 2, labelCy, labelText, labelOpts);
+    }).join("");
+    const streetsArt = streets.map(([x, y, w, h]) => street(x, y, w, h)).join("");
+    const pin = (() => {
+      const start = blocks.find((b) => b.start);
+      if (!start) return "";
+      const px = start.x + start.w / 2;
+      const py = start.y + 2;
+      return `<circle cx="${px}" cy="${py - 24}" r="11" fill="${CORAL}" stroke="#C44A22" stroke-width="1.4"/>`
+        + `<circle cx="${px}" cy="${py - 24}" r="4.4" fill="#FFFFFF"/>`
+        + `<path d="M ${px - 7} ${py - 14} L ${px} ${py + 2} L ${px + 7} ${py - 14} Z" fill="${CORAL}" stroke="#C44A22" stroke-width="1.4"/>`;
+    })();
+    return `<rect x="${ox}" y="${oy}" width="${640 * s}" height="${330 * s}" rx="12" fill="${GRASS}" stroke="${LINE}" stroke-width="2"/>`
+      + `<g transform="translate(${ox} ${oy}) scale(${s})">${streetsArt}${art}${pin}</g>`
+      + `<text x="${ox + 640 * s / 2}" y="${oy - 10}" text-anchor="middle" ${FONT} font-size="14" font-weight="800" fill="${TEAL}">${esc(label)}</text>`;
+  };
+  const inner = panel(blocksA, 32, 116, labelA) + panel(blocksB, 336, 116, labelB);
+  return { kind: "chart", alt, svg: chartFrame(H, title, subtitle, inner) };
+}
+

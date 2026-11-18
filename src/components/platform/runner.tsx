@@ -36,7 +36,7 @@ const SECTION_ORDER: Skill[] = ["reading", "listening", "writing"];
 const SECTION_INTROS: Record<Skill, string> = {
   reading: "Read each text with care - the answers live on the page.",
   listening: "Listen first, answer second. Play each audio up to two times.",
-  writing: "Choose the sentences that are built the right way.",
+  writing: "Climb from sentences to paragraphs - the walk ends with a Big Task.",
   speaking: "Your speaking pillar is assessed live by your teacher.",
 };
 
@@ -218,6 +218,12 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
   const [now, setNow] = useState(Date.now());
   const finishingRef = useRef(false);
 
+  // Big Task state: when the writing ladder ends, the exam closes with the
+  // open Big Task at the level the walk awarded - paragraph or IELTS-style.
+  const [bigTaskLevel, setBigTaskLevel] = useState<number | null>(null);
+  const [bigTaskVariant, setBigTaskVariant] = useState(0);
+  const writingPlacementRef = useRef<number | null>(null);
+
   // answer state (one answer input per question type)
   const [selected, setSelected] = useState("");
   const [multi, setMulti] = useState<string[]>([]);
@@ -238,6 +244,7 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
       targetMinutes: number;
       capMinutes: number;
       targetQuestions: number;
+      bigTaskVariant?: number;
     }>("/api/assessment/start", { mode });
     if (!res.ok || !res.data) {
       setError(res.error || "Could not start the assessment");
@@ -254,6 +261,7 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
     setStartedAt(new Date(res.data.startedAt).getTime());
     setTargetMinutes(res.data.targetMinutes || (mode === "FULL" ? 22 : 9));
     setCapMinutes(res.data.capMinutes || (mode === "FULL" ? 35 : 15));
+    setBigTaskVariant(res.data.bigTaskVariant || 0);
     setSectionDone(null);
     setLastOutcome(null);
     setLoading(false);
@@ -290,6 +298,14 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
       void finishOnce();
     }
   }, [elapsedMin, capMinutes, loading, sectionDone, question, finishOnce]);
+
+  // A resumed attempt whose engine already finished has no next question -
+  // wrap it up and show the report instead of a blank page.
+  useEffect(() => {
+    if (!loading && !error && !question && attemptId && !finishingRef.current) {
+      void finishOnce();
+    }
+  }, [loading, error, question, attemptId, finishOnce]);
 
   const resetAnswerState = () => {
     setSelected("");
@@ -328,6 +344,7 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
       sectionDone: Skill | null;
       finished: boolean;
       autoFinished?: boolean;
+      writingPlacement: number | null;
       skill: Skill;
       sectionIndex: number;
       answered: number;
@@ -340,6 +357,13 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
     setLastOutcome({ correct: res.data.correct, xp: res.data.awardedXp });
     setAnswered(res.data.answered);
     if (res.data.finished) {
+      if (res.data.sectionDone === "writing") {
+        // The writing walk ended: stop before finishing so the student meets
+        // the Big Task at the level the ladder awarded.
+        writingPlacementRef.current = res.data.writingPlacement ?? 3;
+        setSectionDone("writing");
+        return;
+      }
       await finishOnce();
       return;
     }
@@ -356,8 +380,14 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
 
   const continueSection = () => {
     resetAnswerState();
-    setSectionDone(null);
     setLastOutcome(null);
+    if (sectionDone === "writing") {
+      // The exam ends here: show the Big Task screen at the awarded level.
+      setSectionDone(null);
+      setBigTaskLevel(writingPlacementRef.current ?? 3);
+      return;
+    }
+    setSectionDone(null);
     // The engine already prepared the next station - resume it.
     setLoading(true);
     api<{
@@ -430,6 +460,20 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
           </div>
         </Card>
       </div>
+    );
+  }
+
+  // ------- Big Task screen: the writing ladder's final step -------
+  if (bigTaskLevel !== null) {
+    return (
+      <BigTaskScreen
+        attemptId={attemptId}
+        level={bigTaskLevel}
+        variant={bigTaskVariant}
+        onDone={finishOnce}
+        onSkip={finishOnce}
+        onExit={onExit}
+      />
     );
   }
 
@@ -655,6 +699,138 @@ export default function Runner({ mode, onFinish, onExit }: Props) {
       <p className="mt-3 text-center text-xs font-bold" style={{ color: C.soft }}>
         The ladder moves both ways - answer well and it climbs, stumble and it comes down to support you, then confirms your level.
       </p>
+    </div>
+  );
+}
+
+// ---------------- Big Task screen ----------------
+// The writing ladder ends here: the student writes the real Big Task for the
+// level the walk awarded - paragraphs at lower levels, chart descriptions,
+// map reports and full essays at the upper levels. The teacher scores it.
+function BigTaskScreen({
+  attemptId,
+  level,
+  variant,
+  onDone,
+  onSkip,
+  onExit,
+}: {
+  attemptId: string;
+  level: number;
+  variant: number;
+  onDone: () => void;
+  onSkip: () => void;
+  onExit: () => void;
+}) {
+  const [task, setTask] = useState<{ id?: string; prompt?: string; visual?: QVisual } | null>(null);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [done, setDone] = useState(false);
+  const color = SKILL_COLORS.writing;
+
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/attempts/open-task?level=${level}&n=${variant}`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (live && j?.ok && j?.data) {
+          setTask({ id: j.data.id, prompt: j.data.prompt, visual: j.data.visual || undefined });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [level, variant]);
+
+  const submit = async () => {
+    if (busy || text.trim().length < 10) return;
+    setBusy(true);
+    const res = await api<{ submitted: boolean }>("/api/assessment/open", {
+      attemptId,
+      level,
+      variant,
+      taskId: task?.id || "",
+      text,
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setMsg(res.error || "Could not send the task");
+      return;
+    }
+    try {
+      localStorage.setItem(`ss-bigtask-${attemptId}`, "1");
+    } catch {}
+    setDone(true);
+    setTimeout(onDone, 1100);
+  };
+
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <Card className="relative overflow-hidden">
+        <div className="h-2 w-full" style={{ background: color }} />
+        <div className="p-6">
+          {done ? (
+            <div className="py-10 text-center">
+              <Mascot size={110} mood="cheer" color={color} />
+              <h2 className="mt-3 text-2xl font-black" style={{ fontFamily: "var(--font-baloo), 'Baloo 2', sans-serif", color: C.ink }}>
+                Big Task sent! +20 XP
+              </h2>
+              <p className="mt-2 font-bold" style={{ color: C.soft }}>
+                Your teacher will read it and score it. Wrapping up your ladder report...
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <Chip color={color} soft={`${color}1A`}>Big Task</Chip>
+                <Chip color={color} soft={`${color}1A`}>Level {level} writing</Chip>
+              </div>
+              <h2
+                className="mb-3 text-2xl font-black"
+                style={{ fontFamily: "var(--font-baloo), 'Baloo 2', sans-serif", color: C.ink }}
+              >
+                The final step of your writing ladder
+              </h2>
+              {task?.visual && <VisualFigure v={task.visual} />}
+              <div className="rounded-2xl p-4 text-sm font-semibold leading-relaxed" style={{ background: "#FFEAE2", color: C.ink, whiteSpace: "pre-line" }}>
+                {task?.prompt || "Loading your Big Task..."}
+              </div>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                rows={9}
+                placeholder="Write your full answer here..."
+                className="mt-4 w-full rounded-2xl border-2 p-4 font-semibold leading-relaxed outline-none focus:ring-4"
+                style={{ borderColor: C.line, color: C.ink }}
+              />
+              <div className="mt-2 flex items-center justify-between text-xs font-bold" style={{ color: C.soft }}>
+                <span>{words} words</span>
+                <span>Your teacher reads and scores this task.</span>
+              </div>
+              {msg && (
+                <div className="mt-3 rounded-xl px-4 py-2.5 font-bold" style={{ background: "#FFEAE2", color: C.coral }}>
+                  {msg}
+                </div>
+              )}
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                <button onClick={onSkip} className="text-sm font-bold underline" style={{ color: C.soft }}>
+                  Skip for now and see my results
+                </button>
+                <BigButton onClick={submit} disabled={text.trim().length < 10 || busy} color={color}>
+                  {busy ? "Sending..." : "Send to my teacher"} <ArrowRight size={18} />
+                </BigButton>
+              </div>
+              <button onClick={onExit} className="mt-4 text-xs font-bold" style={{ color: C.soft }}>
+                Save and exit - I will finish later
+              </button>
+            </>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

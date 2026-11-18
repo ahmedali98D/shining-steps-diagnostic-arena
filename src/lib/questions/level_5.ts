@@ -243,7 +243,7 @@ const book: LevelBook = {
       topic: "First conditional if-plans", type: "fill",
       prompt: "Complete the if-plan: 'If it rains on Saturday, we ___ (stay) home.'",
       answer: "will stay",
-      accepted: ["will stay", "Will stay", "WILL STAY", " will stay", "will  stay", "shall stay"],
+      accepted: ["shall stay"],
       explain: "The first conditional joins if + present simple with will + plain verb: 'If it rains, we will stay home.' Lesson 4 builds four if-plans for real weekend weather.",
       bloom: "Apply", dok: 2, solo: "Relational", marzano: "Comprehension", ubd: "Apply", udl: "Action and Expression", diff: 2,
     },

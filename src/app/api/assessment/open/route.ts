@@ -2,9 +2,13 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { ok, fail, handleError } from "@/lib/api";
-import { openTaskFor } from "@/lib/questions";
+import { openTaskFor, openTaskCount } from "@/lib/questions";
 
-/** Submit the bonus open writing task attached to a completed attempt. */
+/**
+ * Submit the Big Task writing piece attached to an attempt.
+ * The level comes from the exam flow (the level the writing ladder awarded),
+ * and `taskId` must belong to that level so variants cannot be mixed up.
+ */
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
@@ -18,8 +22,21 @@ export async function POST(req: NextRequest) {
     if (!attempt || attempt.studentId !== user.id) return fail("Attempt not found", 404);
 
     const result = attempt.resultJson ? JSON.parse(attempt.resultJson) : null;
-    const level = result?.overallRounded ?? 0;
-    const task = openTaskFor(level);
+    const level = Math.max(
+      0,
+      Math.min(8, Number(body.level ?? result?.overallRounded ?? result?.skills?.find((s: { skill: string }) => s.skill === "writing")?.placement ?? 0))
+    );
+    const variant = Math.max(0, Number(body.variant ?? 0) || 0);
+    const count = openTaskCount(level);
+    if (count === 0) return fail("No open task found for this level");
+
+    // If the client names a task, honor it when it belongs to this level.
+    const wantedId = String(body.taskId || "");
+    let task = openTaskFor(level, variant);
+    if (wantedId) {
+      const match = Array.from({ length: count }, (_, i) => openTaskFor(level, i)).find((t) => t && t.id === wantedId);
+      if (match) task = match;
+    }
     if (!task) return fail("No open task found for this level");
 
     const already = await db.response.findFirst({

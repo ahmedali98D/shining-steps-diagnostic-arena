@@ -9,10 +9,24 @@ import L5 from "./level_5";
 import L6 from "./level_6";
 import L7 from "./level_7";
 import L8 from "./level_8";
+import XA from "./expansion_a";
+import XB from "./expansion_b";
+import XC from "./expansion_c";
+import XD from "./expansion_d";
+import XE from "./expansion_e";
+import XF from "./expansion_f";
 
 export * from "./types";
 
 export const BOOKS: LevelBook[] = [L0, L1, L2, L3, L4, L5, L6, L7, L8];
+
+// Expansion items join their level book so every pool, tally and result view
+// sees one merged bank per level.
+const EXPANSION: Question[] = [...XA, ...XB, ...XC, ...XD, ...XE, ...XF];
+for (const q of EXPANSION) {
+  const book = BOOKS[Math.max(0, Math.min(8, q.level))];
+  book.questions.push(q);
+}
 
 // Enrich the bank before indexing: attach UDL visuals to existing items and
 // merge the multimodal audio+picture questions into their level books.
@@ -52,8 +66,17 @@ export function gradablePoolFor(level: number, skill: Skill): Question[] {
   return poolFor(level, skill).filter((q) => q.type !== "open");
 }
 
-export function openTaskFor(level: number): Question | undefined {
-  return poolFor(level, "writing").find((q) => q.type === "open");
+export function openTaskFor(level: number, variant = 0): Question | undefined {
+  const tasks = poolFor(level, "writing").filter((q) => q.type === "open");
+  if (tasks.length === 0) return undefined;
+  // Chart, diagram and map tasks lead, so the exam ladder visibly ends with
+  // data writing at the upper levels; the cycling keeps retakes varied.
+  const ordered = [...tasks.filter((t) => t.visual), ...tasks.filter((t) => !t.visual)];
+  return ordered[((variant % ordered.length) + ordered.length) % ordered.length];
+}
+
+export function openTaskCount(level: number): number {
+  return poolFor(level, "writing").filter((q) => q.type === "open").length;
 }
 
 export function allQuestions(): Question[] {

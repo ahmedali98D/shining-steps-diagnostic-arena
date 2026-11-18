@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     if (existing) {
       const wrapped = JSON.parse(existing.state || "{}") as WrappedState;
       const qid = wrapped.engine.currentQuestionId;
+      const completedCount = await db.attempt.count({ where: { studentId: user.id, status: "COMPLETED" } });
       return ok({
         attemptId: existing.id,
         resumed: true,
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
         targetMinutes: TARGET_MINUTES[mode],
         capMinutes: CAP_MINUTES[mode],
         targetQuestions: TARGET_QUESTIONS[mode],
+        bigTaskVariant: completedCount,
       });
     }
 
@@ -59,7 +61,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const engine = initEngineState(mode, lastPlacements);
+    // Anti-repeat memory: every question served across the student's recent
+    // completed attempts. The engine avoids these while fresh items remain.
+    const recentAttempts = await db.attempt.findMany({
+      where: { studentId: user.id, status: "COMPLETED" },
+      orderBy: { finishedAt: "desc" },
+      take: 6,
+      select: { resultJson: true },
+    });
+    const recentIds: string[] = [];
+    for (const ra of recentAttempts) {
+      try {
+        const result = JSON.parse(ra.resultJson || "{}");
+        for (const pq of result.perQuestion || []) recentIds.push(pq.qid);
+      } catch {
+        /* ignore malformed rows */
+      }
+    }
+
+    const engine = initEngineState(mode, lastPlacements, Array.from(new Set(recentIds)));
+    const completedCount = await db.attempt.count({ where: { studentId: user.id, status: "COMPLETED" } });
     const wrapped: WrappedState = { engine, log: [] };
     const attempt = await db.attempt.create({
       data: {
@@ -82,6 +103,7 @@ export async function POST(req: NextRequest) {
       targetMinutes: TARGET_MINUTES[mode],
       capMinutes: CAP_MINUTES[mode],
       targetQuestions: TARGET_QUESTIONS[mode],
+      bigTaskVariant: completedCount,
     });
   } catch (err) {
     return handleError(err);

@@ -38,6 +38,9 @@ export interface SkillSectionState {
   tallies: Record<number, LevelTally>;
   lastResults: boolean[]; // results of the current block
   done: boolean;
+  recentIds?: string[]; // questions served in the student's recent attempts - avoided while fresh items remain
+  servedAt?: Record<string, number>; // qid -> serving sequence, for least-recently-served rotation
+  servedCounter?: number;
 }
 
 export interface EngineState {
@@ -139,7 +142,11 @@ function startLevelFor(skill: Skill, lastPlacement?: number): number {
   return Math.max(0, Math.min(8, lastPlacement));
 }
 
-export function initEngineState(mode: Mode, lastPlacements?: Partial<Record<Skill, number>>): EngineState {
+export function initEngineState(
+  mode: Mode,
+  lastPlacements?: Partial<Record<Skill, number>>,
+  recentIds: string[] = []
+): EngineState {
   const sections = {} as Record<Skill, SkillSectionState>;
   for (const skill of SYSTEM_SKILLS) {
     const start = startLevelFor(skill, lastPlacements?.[skill]);
@@ -152,6 +159,7 @@ export function initEngineState(mode: Mode, lastPlacements?: Partial<Record<Skil
       tallies: {},
       lastResults: [],
       done: false,
+      recentIds: recentIds.slice(0, 400),
     };
   }
   const order: Skill[] = mode === "FULL" ? [...SECTION_ORDER] : [mode];
@@ -169,21 +177,43 @@ export function initEngineState(mode: Mode, lastPlacements?: Partial<Record<Skil
 
 function pickNext(section: SkillSectionState): Question {
   const pool = gradablePoolFor(section.currentLevel, section.skill);
-  const fresh = pool.filter((q) => !section.askedIds.includes(q.id));
+  const recent = section.recentIds || [];
+  const seq = section.servedAt || (section.servedAt = {});
+  const servedAge = (q: Question) => seq[q.id] ?? -1;
+  // First choice: never seen, never served in the student's recent attempts.
+  const fresh = pool.filter((q) => !section.askedIds.includes(q.id) && !recent.includes(q.id));
+  // Second choice: not asked in this attempt (recent items allowed back as a last resort).
+  const notAsked = pool.filter((q) => !section.askedIds.includes(q.id));
+  const tier = fresh.length > 0 ? fresh : notAsked.length > 0 ? notAsked : pool;
   const usedUnits = new Set(section.tallies[section.currentLevel]?.units || []);
   // Prefer a question from a unit not yet used at this level - variety, not repetition.
-  const fromNewUnit = fresh.filter((q) => !usedUnits.has(q.unit));
-  const chosen = shuffle(fromNewUnit.length > 0 ? fromNewUnit : fresh);
-  if (chosen.length > 0) return chosen[0];
-  // Fallback: any gradable question at a nearby level (should be rare).
-  for (let d = 1; d <= 8; d++) {
-    for (const lv of [section.currentLevel - d, section.currentLevel + d]) {
-      if (lv < 0 || lv > 8) continue;
-      const p2 = gradablePoolFor(lv, section.skill).filter((q) => !section.askedIds.includes(q.id));
-      if (p2.length > 0) return shuffle(p2)[0];
+  const fromNewUnit = tier.filter((q) => !usedUnits.has(q.unit));
+  const candidates = fromNewUnit.length > 0 ? fromNewUnit : tier;
+  // Within the tier, rotate: items served longest ago come first, so a small
+  // pool still spreads its items evenly across consecutive attempts.
+  const shuffled = shuffle(candidates).sort((a, b) => servedAge(a) - servedAge(b));
+  const picked = shuffled[0];
+  if (!picked) {
+    // Fallback: any gradable question at a nearby level (should be rare).
+    for (let d = 1; d <= 8; d++) {
+      for (const lv of [section.currentLevel - d, section.currentLevel + d]) {
+        if (lv < 0 || lv > 8) continue;
+        const p2 = gradablePoolFor(lv, section.skill).filter((q) => !section.askedIds.includes(q.id) && !recent.includes(q.id));
+        if (p2.length > 0) return shuffle(p2)[0];
+      }
     }
+    for (let d = 1; d <= 8; d++) {
+      for (const lv of [section.currentLevel - d, section.currentLevel + d]) {
+        if (lv < 0 || lv > 8) continue;
+        const p2 = gradablePoolFor(lv, section.skill).filter((q) => !section.askedIds.includes(q.id));
+        if (p2.length > 0) return shuffle(p2)[0];
+      }
+    }
+    return pool[0];
   }
-  return gradablePoolFor(section.currentLevel, section.skill)[0];
+  section.servedCounter = (section.servedCounter || 0) + 1;
+  seq[picked.id] = section.servedCounter;
+  return picked;
 }
 
 function tallyFor(section: SkillSectionState, level: number): LevelTally {
@@ -319,20 +349,22 @@ function normalizeText(s: string): string {
 export function gradeAnswer(q: Question, answer: string): boolean {
   if (q.type === "open") return false; // open tasks go to teacher review
   if (q.type === "mcq" || q.type === "truefalse") {
-    return normalizeText(answer) === normalizeText(q.answer);
+    // The student taps one exact option, so compare exact strings. A
+    // case-insensitive compare would make capitalization items self-grading.
+    return answer.trim() === q.answer.trim();
   }
   if (q.type === "fill") {
     const candidates = [q.answer, ...(q.accepted || [])].map(normalizeText);
     return candidates.includes(normalizeText(answer));
   }
   if (q.type === "multi") {
-    const want = q.answer.split(";;").map(normalizeText).sort().join("|");
-    const got = answer.split(";;").map(normalizeText).sort().join("|");
+    const want = q.answer.split(";;").map((s) => s.trim()).sort().join("|");
+    const got = answer.split(";;").map((s) => s.trim()).sort().join("|");
     return want === got;
   }
   if (q.type === "order") {
-    const want = q.answer.split(";;").map(normalizeText).join("|");
-    const got = answer.split(";;").map(normalizeText).join("|");
+    const want = q.answer.split(";;").map((s) => s.trim()).join("|");
+    const got = answer.split(";;").map((s) => s.trim()).join("|");
     return want === got;
   }
   return false;

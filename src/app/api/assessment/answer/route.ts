@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { ok, fail, handleError } from "@/lib/api";
-import { gradeAndAdvance, publicQuestion, CAP_MINUTES } from "@/lib/diagnostic";
+import { gradeAndAdvance, publicQuestion, scoreAttempt, CAP_MINUTES } from "@/lib/diagnostic";
 import { getQuestion } from "@/lib/questions";
 
 interface WrappedState {
@@ -52,6 +52,15 @@ export async function POST(req: NextRequest) {
 
     const nextQ = outcome.nextQuestionId ? publicQuestion(outcome.nextQuestionId) : null;
 
+    // When the writing walk finishes, report the level the ladder awarded for
+    // writing, so the exam can close with the Big Task at exactly that level.
+    let writingPlacement: number | null = null;
+    if (outcome.sectionDone === "writing") {
+      const partial = scoreAttempt(wrapped.engine, wrapped.log);
+      const w = partial.skills.find((s) => s.skill === "writing");
+      writingPlacement = w ? w.placement : null;
+    }
+
     // Time management: past the cap, wrap the exam up with the evidence collected so far.
     const elapsedMs = Date.now() - new Date(attempt.startedAt).getTime();
     const capMs = (CAP_MINUTES[attempt.mode as "FULL" | "reading" | "listening" | "writing" | "speaking"] || 35) * 60000;
@@ -65,6 +74,7 @@ export async function POST(req: NextRequest) {
       sectionDone: outcome.sectionDone || null,
       finished: outcome.finished || outOfTime,
       autoFinished: outOfTime,
+      writingPlacement,
       skill: wrapped.engine.order[wrapped.engine.activeIdx],
       sectionIndex: wrapped.engine.activeIdx,
       answered: wrapped.log.length,

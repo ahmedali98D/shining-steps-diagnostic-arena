@@ -72,6 +72,16 @@ export default function ResultsView({ attemptId, onGoHome, onRetake }: { attempt
   const [taskMsg, setTaskMsg] = useState("");
   const [submittingTask, setSubmittingTask] = useState(false);
 
+  // If the Big Task was already written inside the exam (the writing ladder's
+  // final step), do not offer it twice on the results page.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(`ss-bigtask-${attemptId}`) === "1") setTaskSubmitted(true);
+    } catch {
+      /* private mode - the exam submission still shows in teacher review */
+    }
+  }, [attemptId]);
+
   useEffect(() => {
     api<DetailData>(`/api/attempts/${attemptId}`, undefined, "GET").then((res) => {
       if (res.ok && res.data) {
@@ -442,18 +452,29 @@ export default function ResultsView({ attemptId, onGoHome, onRetake }: { attempt
 }
 
 function OpenTaskPrompt({ level }: { level: number }) {
-  const [prompt, setPrompt] = useState("Loading the Big Task for your level...");
+  const [task, setTask] = useState<{ prompt: string; visual?: { svg?: string } } | null>(null);
   useEffect(() => {
-    // fetch the task prompt via the attempts detail is not needed: we ask the server minimally
     fetch(`/api/attempts/open-task?level=${level}`)
       .then((x) => x.json())
       .then((j) => {
-        if (j?.ok && j?.data?.prompt) setPrompt(j.data.prompt);
-        else setPrompt("Write three sentences using what you learned at this level.");
+        if (j?.ok && j?.data?.prompt) setTask({ prompt: j.data.prompt, visual: j.data.visual || undefined });
+        else setTask({ prompt: "Write three sentences using what you learned at this level." });
       })
-      .catch(() => setPrompt("Write three sentences using what you learned at this level."));
+      .catch(() => setTask({ prompt: "Write three sentences using what you learned at this level." }));
   }, [level]);
-  return <span>{prompt}</span>;
+  if (!task) return <span>Loading the Big Task for your level...</span>;
+  return (
+    <span>
+      {task.visual?.svg && (
+        <span
+          className="mb-3 block overflow-hidden rounded-xl border bg-white p-2"
+          style={{ borderColor: C.line }}
+          dangerouslySetInnerHTML={{ __html: task.visual.svg }}
+        />
+      )}
+      {task.prompt}
+    </span>
+  );
 }
 
 void Volume2;
